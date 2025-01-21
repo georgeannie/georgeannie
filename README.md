@@ -8,17 +8,17 @@ While I periodically take breaks to focus on professional projects, learning new
 ## What You'll Find Here
 <b>Predictive Analytics:</b>
 
-a. <b>Helicopter Deployment Prediction </b>: Developed an application to predict the need for helicopter transportation based on patient condition, leveraging predictive modeling to improve response times and optimize resource utilization in emergency scenarios.
+a. <b><a href="https://github.com/georgeannie/Helicopter---Healthcare-Analytics-"> Helicopter Deployment Prediction </a></b>: Developed an application to predict the need for helicopter transportation based on patient condition, leveraging predictive modeling to improve response times and optimize resource utilization in emergency scenarios.
 
-b. <b>Workforce Resource Allocation</b>: Designed an interactive application with visual dashboards and dynamic toggles to analyze and optimize workforce resource allocation, ensuring efficient distribution of resources across organizational priorities.
+b. <b><a href="https://github.com/georgeannie/FEMA">Workforce Resource Allocation</a></b>: Designed an interactive application with visual dashboards and dynamic toggles to analyze and optimize workforce resource allocation, ensuring efficient distribution of resources across organizational priorities.
 
 <b>Simuation: </b>
 
-a. <b>Monte Carlo Simulation</b>: Developed an interactive application to model and visualize the probability distributions of key factors affecting vacancy predictions. This tool empowered stakeholders with data-driven insights to enhance negotiation strategies and decision-making.
+a. <b><a href="https://github.com/georgeannie/Monte-Carlo-Simulation-App-for-Vacancy-Forecasting-Streamlit">Monte Carlo Simulation</a></b>: Developed an interactive application to model and visualize the probability distributions of key factors affecting vacancy predictions. This tool empowered stakeholders with data-driven insights to enhance negotiation strategies and decision-making.
 
 <b>Advanced Analytic:s</b>
 
-a. <b>Computer Vision For Predictive Maintenance</b>: Developed a computer vision model to classify equipment status (red, yellow, green) for UPS systems, enabling proactive maintenance of devices in inaccessible locations. Designed and deployed the model to run efficiently on a Raspberry Pi camera, providing real-time status updates and reducing downtime risks.
+a. <b><a href="https://github.com/georgeannie/Color_Detection_for_Predictive_Maintenance">Computer Vision For Predictive Maintenance</a></b>: Developed a computer vision model to classify equipment status (red, yellow, green) for UPS systems, enabling proactive maintenance of devices in inaccessible locations. Designed and deployed the model to run efficiently on a Raspberry Pi camera, providing real-time status updates and reducing downtime risks.
 
 b. <b><a href="https://github.com/georgeannie/Targeting_Analytics">Real Time Targeting Analytics</a></b>: Developed a real-time tracking and predictive analytics solution to analyze the movement patterns of wolves, leveraging GPS and behavioral data. This enabled the prediction of their next moves with high accuracy, potentially aiding wildlife conservation efforts by optimizing resource allocation for monitoring and protecting endangered species. The solution provided actionable insights for conservationists, improving the efficiency of tracking and ensuring timely interventions to safeguard habitats.
 
