@@ -6,11 +6,15 @@ Hi, I’m Annie George, a Data Science Leader and AI/ML Enthusiast passionate ab
 While I periodically take breaks to focus on professional projects, learning new skills, and exploring cutting-edge technologies, I continuously refine and update my portfolio to showcase impactful work. Many of the projects here include developed applications that demonstrate practical implementations of data-driven solutions.
 
 ### What You'll Find Here
-Predictive Analytics: 
-a. App to predict need for helicopter based on patient condition
-b. App to understand Workforce Resource Allocation
-Simuation: 
-a. Monte Carlo Simulation App to understand the distrubution of various factors used to predict vacancy
+<b>Predictive Analytics:</b>
+
+a. <b>Helicopter Deployment Prediction </b>: Developed an application to predict the need for helicopter transportation based on patient condition, leveraging predictive modeling to improve response times and optimize resource utilization in emergency scenarios.
+
+b. <b>Workforce Resource Allocation</b>: Designed an interactive application with visual dashboards and dynamic toggles to analyze and optimize workforce resource allocation, ensuring efficient distribution of resources across organizational priorities.
+
+<b>Simuation: </b>
+
+a. <b>Monte Carlo Simulation</b>: Developed an interactive application to model and visualize the probability distributions of key factors affecting vacancy predictions. This tool empowered stakeholders with data-driven insights to enhance negotiation strategies and decision-making.
 
 ### What Drives Me
 I enjoy working on projects that bridge the gap between data science and business strategy, transforming insights into scalable, actionable solutions. I’m particularly passionate about using MLOps best practices and exploring innovative applications of AI/ML to improve processes, drive engagement, and create measurable impact.
