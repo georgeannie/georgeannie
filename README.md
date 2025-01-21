@@ -1,5 +1,5 @@
 # ANNIE GEORGE
-## Data Science Enthusiast | All Things AI ML | Real Life: Manager Data Science
+## Data Science Enthusiast | All Things AI ML | Working as Manager Data Science
 ####                                    Welcome to My GitHub Profile!
 Hi, I’m Annie George, a Data Science Leader and AI/ML Enthusiast passionate about leveraging data to drive insights, develop innovative solutions, and solve complex challenges. My GitHub profile is a reflection of my journey in the ever-evolving field of data science, AI, and machine learning.
 
