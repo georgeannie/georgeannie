@@ -16,6 +16,12 @@ b. <b>Workforce Resource Allocation</b>: Designed an interactive application wit
 
 a. <b>Monte Carlo Simulation</b>: Developed an interactive application to model and visualize the probability distributions of key factors affecting vacancy predictions. This tool empowered stakeholders with data-driven insights to enhance negotiation strategies and decision-making.
 
+<b>Advanced Analytic:s</b>
+
+a. <b>Computer Vision For Predictive Maintenance</b>: Developed a computer vision model to classify equipment status (red, yellow, green) for UPS systems, enabling proactive maintenance of devices in inaccessible locations. Designed and deployed the model to run efficiently on a Raspberry Pi camera, providing real-time status updates and reducing downtime risks.
+
+b. <b><a href="https://github.com/georgeannie/Targeting_Analytics">Real Time Targeting Analytics</a></b>: Developed a real-time tracking and predictive analytics solution to analyze the movement patterns of wolves, leveraging GPS and behavioral data. This enabled the prediction of their next moves with high accuracy, potentially aiding wildlife conservation efforts by optimizing resource allocation for monitoring and protecting endangered species. The solution provided actionable insights for conservationists, improving the efficiency of tracking and ensuring timely interventions to safeguard habitats.
+
 ## What Drives Me
 I enjoy working on projects that bridge the gap between data science and business strategy, transforming insights into scalable, actionable solutions. I’m particularly passionate about using MLOps best practices and exploring innovative applications of AI/ML to improve processes, drive engagement, and create measurable impact.
 
