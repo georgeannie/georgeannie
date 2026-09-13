@@ -1,3 +1,0 @@
-train_lr
-train_rf
-validate_model
