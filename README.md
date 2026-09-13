@@ -1,56 +1,37 @@
 # ANNIE GEORGE
-## Data Science Enthusiast | All Things AI ML
-####                                    Welcome to My GitHub Profile!
-Hi, I’m Annie George, a Data Science Leader and AI/ML Enthusiast passionate about leveraging data to drive insights, develop innovative solutions, and solve complex challenges. My GitHub profile is a reflection of my journey in the ever-evolving field of data science, AI, and machine learning.
+#### Welcome to My GitHub Profile!
 
-While I periodically take breaks to focus on professional projects, learning new skills, and exploring cutting-edge technologies, I continuously refine and update my portfolio to showcase impactful work. Many of the projects here include developed applications that demonstrate practical implementations of data-driven solutions.
+# Welcome to My GitHub Profile!
 
-## What You'll Find Here
-<b>Predictive Analytics:</b>
+I have watched a business make a call to offer a payment plan with no evidence behind it. I have watched the failure too: a team ships a model with feature leakage and fuzzy filter logic, the metrics look great, and months later the business finds out it can't actually forecast anything. 
+Both cost the same thing - <b>Trust</b>. 
 
-a. <b><a href="https://github.com/georgeannie/Helicopter---Healthcare-Analytics-"> Helicopter Deployment Prediction </a></b>: Developed an application to predict the need for helicopter transportation based on patient condition, leveraging predictive modeling to improve response times and optimize resource utilization in emergency scenarios.
+That's why I gravitate toward the harder questions: what's actually driving product returns, whether an ad really moved sales — the kind where the answer changes a decision, not just a slide.
 
-b. <b><a href="https://github.com/georgeannie/FEMA">Workforce Resource Allocation</a></b>: Designed an interactive application with visual dashboards and dynamic toggles to analyze and optimize workforce resource allocation, ensuring efficient distribution of resources across organizational priorities.
+### My Transitions
+`legacy transaction systems` → `predictive modeling` → `production ML/MLOps` → `causal & Bayesian inference` → `AI & agentic systems today`
 
-<b>Simuation: </b>
+That arc is really one thread: the same discipline applied to whatever the system is built from. These days it shows up as measuring what AI and agentic systems actually do — evaluation, drift, cost versus value, but it's the same questions I've always asked, just pointed at newer tools. 
 
-a. <b><a href="https://github.com/georgeannie/Monte-Carlo-Simulation-App-for-Vacancy-Forecasting-Streamlit">Monte Carlo Simulation</a></b>: Developed an interactive application to model and visualize the probability distributions of key factors affecting vacancy predictions. This tool empowered stakeholders with data-driven insights to enhance negotiation strategies and decision-making.
+A technical leader by function and a lifelong learner by disposition; this profile is where I work through ideas in public, old and new side by side.
 
-<b>Advanced Analytic:s</b>
+### Currently
+- 🔍 Building an evaluation harness for RAG faithfulness/hallucination scoring
+- 📰 Shipping an agent-loop news consolidator (OpenAI + Tavily) for weekly company updates
+- 📊 Speaking at RVATech Data & AI Summit 2026 on decision-making under uncertainty
 
-a. <b><a href="https://github.com/georgeannie/Color_Detection_for_Predictive_Maintenance">Computer Vision For Predictive Maintenance</a></b>: Developed a computer vision model to classify equipment status (red, yellow, green) for UPS systems, enabling proactive maintenance of devices in inaccessible locations. Designed and deployed the model to run efficiently on a Raspberry Pi camera, providing real-time status updates and reducing downtime risks.
+### My rule of thumb
+A dashboard or model without an actionable next step is dead weight. AI/ML doesn't get a pass on that either - it should be productive, resourceful, and revenue-generating, not a lower bar dressed up in new tooling.
 
-b. <b><a href="https://github.com/georgeannie/Targeting_Analytics">Real Time Targeting Analytics</a></b>: Developed a real-time tracking and predictive analytics solution to analyze the movement patterns of wolves, leveraging GPS and behavioral data. This enabled the prediction of their next moves with high accuracy, potentially aiding wildlife conservation efforts by optimizing resource allocation for monitoring and protecting endangered species. The solution provided actionable insights for conservationists, improving the efficiency of tracking and ensuring timely interventions to safeguard habitats.
+### Ask me about
+- Why most uplift models are propensity models in disguise
+- BG/NBD models and what they actually tell you about customer value
+- Why a model can look great in validation and still fail in production
+- What "drift" actually means for an LLM output (vs. a batch model)
+- BSTS/counterfactual methods for marketing spend and ad impact
+- Why correlation-based attribution is a trap - using Marketing Mix Models methodology and its assumptions
+- When a dashboard should be sunset instead of maintained
+- Migrating decision logic off a legacy system without a rewrite
+- ...or whatever's actually on your mind
 
-## What Drives Me
-I enjoy working on projects that bridge the gap between data science and business strategy, transforming insights into scalable, actionable solutions. I’m particularly passionate about using MLOps best practices and exploring innovative applications of AI/ML to improve processes, drive engagement, and create measurable impact.
-
-## Skills
-- ### Languages
-  ![](https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue) ![](https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white) ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white) ![YAML](https://img.shields.io/badge/yaml-%23ffffff.svg?style=for-the-badge&logo=yaml&logoColor=151515)
-- ### Databases
-  ![](https://img.shields.io/badge/Snowflake-0098E6?style=for-the-badge&logo=snowflake&logoColor=white) ![](https://img.shields.io/badge/Microsoft%20SQL%20Server-CC2927?style=for-the-badge&logo=microsoft%20sql%20server&logoColor=white) ![](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white) ![](https://img.shields.io/badge/Redshift-F80000?style=for-the-badge&logo=redshift&logoColor=white) ![](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white) ![](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white) ![](https://img.shields.io/badge/Amazon%20RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white)
-- ### ML Frameworks
-  ![](https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white) ![](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=white) ![mlflow](https://img.shields.io/badge/mlflow-%23d9ead3.svg?style=for-the-badge&logo=numpy&logoColor=blue) ![](https://img.shields.io/badge/Keras-D00000?style=for-the-badge&logo=Keras&logoColor=white) ![PyTorch Badge](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=fff) 
-- ### Libraries
-  ![](https://img.shields.io/badge/Jupyter-F37626.svg?&style=for-the-badge&logo=jupyter&logoColor=white) ![](https://img.shields.io/badge/Folium-77B829?style=for-the-badge&logo=folium&logoColor=white)  ![](https://img.shields.io/badge/Numpy-777BB4?style=for-the-badge&logo=numpy&logoColor=white) ![](	https://img.shields.io/badge/Pandas-2C2D72?style=for-the-badge&logo=pandas&logoColor=white) ![](https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white) ![](https://img.shields.io/badge/SciPy-654FF0?style=for-the-badge&logo=SciPy&logoColor=white) ![](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white) ![](https://img.shields.io/badge/OpenCV-27338e?style=for-the-badge&logo=OpenCV&logoColor=white)
-- ### Big Data Processing
-  ![Apache Spark Badge](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=fff)  ![](https://img.shields.io/badge/Snowpark-0098E6?style=for-the-badge&logo=snowflake&logoColor=white)  
-- ### Visualization Tools & Libraries
-  ![](https://img.shields.io/badge/Tableau-77B829?style=for-the-badge&logo=tableau&logoColor=white) ![](https://img.shields.io/badge/Plotly-239120?style=for-the-badge&logo=plotly&logoColor=white) ![](https://img.shields.io/badge/Kepler%20GL-239120?style=for-the-badge&logo=kepler&logoColor=white)  ![](https://img.shields.io/badge/Matplotlib-%23ffffff.svg?style=for-the-badge&logo=Matplotlib&logoColor=black) 
-- ### App Development
-  ![](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white) ![](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)  ![](https://img.shields.io/badge/RShiny-FF4B4B?style=for-the-badge&logo=rshiny&logoColor=white) ![Dash Badge](https://img.shields.io/badge/Dash-008DE4?style=for-the-badge&logo=dash&logoColor=fff) ![FastAPI Badge](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&llogo=fastapi&logoColor=fff)
-- ### Cloud Frameworks
-  ![Amazon EC2 Badge](https://img.shields.io/badge/Amazon%20EC2-F90?style=for-the-badge&logo=amazonec2&logoColor=fff) ![Amazon S3 Badge](https://img.shields.io/badge/Amazon%20S3-569A31?logo=amazons3&style=for-the-badge&logoColor=fff) ![AWS Lambda Badge](https://img.shields.io/badge/AWS%20Lambda-F90?style=for-the-badge&logo=awslambda&logoColor=fff)
-  ![Databricks Badge](https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=fff) ![Dataiku Badge](https://img.shields.io/badge/Dataiku-2AB1AC?style=for-the-badge&logo=dataiku&logoColor=fff)
-  
-  ![Azure ML](https://img.shields.io/badge/Azure%20Machine%20Learning-008DE4?style=for-the-badge&logo=azure&logoColor=fff)
-  ![Azure API](https://img.shields.io/badge/Azure%20API-008DE4?style=for-the-badge&logo=azure&logoColor=fff)
-  ![Azure Blob](https://img.shields.io/badge/Azure%20Blob-008DE4?style=for-the-badge&logo=azure&logoColor=fff)
-- ### IDE
-  ![](https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue) ![](	https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252) ![](https://img.shields.io/badge/PyCharm-000000.svg?&style=for-the-badge&logo=PyCharm&logoColor=white) ![](https://img.shields.io/badge/VSCode-0078D4?style=for-the-badge&logo=visual%20studio%20code&logoColor=white) ![RStudio](https://img.shields.io/badge/RStudio-4285F4?style=for-the-badge&logo=rstudio&logoColor=white)
-
-  
-
-
-##### Feel free to explore my repositories and connect if you're interested in collaborating or discussing exciting developments in data science and AI!
+##### Feel free to explore my repositories and connect if you're interested in collaborating or discussing developments in data science and AI!
