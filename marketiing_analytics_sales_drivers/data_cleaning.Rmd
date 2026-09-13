@@ -1,0 +1,253 @@
+---
+title: "data cleaning"
+author: "Annie George"
+date: "November 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(plyr)
+library(tidyr)
+library(caret)
+library(janitor)
+```
+
+```{r}
+#read monthly shipment/pos
+sun=read_excel("sun_drivers.xlsx",  col_names=TRUE)
+sun=clean_names(sun)
+dates=sun[,c(2,3,8)]
+
+```
+
+```{r}
+#sun[is.na(sun)]=0
+
+#convert avg customer review to integer
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+#sun$currency_code = as.factor(sun$currency_code)
+```
+
+```{r}
+sun=sun[,!names(sun) %in% c("ordered_amount_trend", "ordered_amount_year_over_year_trend", "amazon_ordered_sales_rank", "orders_trend", "orders_year_over_year_trend", "ordered_units_trend", "ordered_units_year_over_year_trend", "shipped_amount_trend", "shipped_amount_year_over_year_trend", "shipped_units_trend", "shipped_units_year_over_year_trend", "amazon_shipped_units_rank", "amazon_category_shipped_units_rank", "amazon_subcategory_shipped_units_rank ", "unfilled_customer_ordered_units_trend", "unfilled_customer_ordered_units_year_over_year_trend", "unique_visitors_trend ", "unique_visitors_year_over_year_trend", "conversion_rate_trend", "conversion_rate_year_over_year_trend",          "conversion_percentile", "x1_week_forecast", "x4_week_forecast", "x12_week_forecast", "sellable_on_hand_cost", "unsellable_on_hand_cost", "shipped_cost_of_goods_sold_trend", "shipped_cost_of_goods_sold", "shipped_cost_of_goods_sold_year_over_year_trend", "currency_code", "page_views_year_over_year_trend", "unique_visitors_trend", "page_views_trend")]
+
+sum(is.na(sun))
+colSums(is.na(sun))
+
+sun=sun[!is.na(sun$week_start),]
+#cases=sun[!complete.cases(sun),]
+
+sun$average_ordered_price[is.na(sun$average_ordered_price) & !is.na(sun$average_shipped_price)] = sun$average_shipped_price[is.na(sun$average_ordered_price) & !is.na(sun$average_shipped_price)] 
+
+
+sun$average_shipped_price[is.na(sun$average_shipped_price) & !is.na(sun$average_ordered_price)] = sun$average_ordered_price[is.na(sun$average_shipped_price) & !is.na(sun$average_ordered_price)] 
+
+sun$average_shipped_price[is.na(sun$average_shipped_price) & !is.na(sun$list_price)] = sun$list_price[is.na(sun$average_shipped_price) & !is.na(sun$list_price)]
+
+sun$average_ordered_price[is.na(sun$average_ordered_price) & !is.na(sun$list_price)] = sun$list_price[is.na(sun$average_ordered_price) & !is.na(sun$list_price)]
+
+sun$amazon_category_ordered_sales_rank[is.na(sun$amazon_category_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+sun$amazon_subcategory_ordered_sales_rank[is.na(sun$amazon_subcategory_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+sun$amazon_category_ordered_units_rank[is.na(sun$amazon_category_ordered_units_rank) & sun$ordered_units == 0] = 0
+sun$amazon_subcategory_ordered_units_rank[is.na(sun$amazon_subcategory_ordered_units_rank) & sun$ordered_units == 0] = 0
+sun$amazon_ordered_units_rank[is.na(sun$amazon_ordered_units_rank) & sun$ordered_units == 0] = 0
+sun$amazon_shipped_sales_rank[is.na(sun$amazon_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+sun$amazon_category_shipped_sales_rank[is.na(sun$amazon_category_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+sun$amazon_subcategory_shipped_sales_rank[is.na(sun$amazon_subcategory_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+sun$amazon_subcategory_shipped_units_rank[is.na(sun$amazon_subcategory_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+
+num_var = which(sapply(sun, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+
+factcols = c("amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "amazon_ordered_units_rank", "amazon_category_ordered_units_rank", "amazon_subcategory_ordered_units_rank", "amazon_shipped_sales_rank", "amazon_category_shipped_sales_rank", "amazon_subcategory_shipped_sales_rank", "amazon_subcategory_shipped_units_rank", "page_views_rank", "page_views_index", "unique_visitors_index")
+
+sun[factcols] = lapply(sun[factcols], factor)
+sapply(sun, function(x) sum(is.na(x)))
+```
+
+```{r}
+sun=sun[!is.na(sun$amazon_subcategory_ordered_sales_rank), ]
+sun=sun[!is.na(sun$amazon_category_ordered_units_rank), ]
+sun=sun[!is.na(sun$page_views_rank), ]
+
+sapply(sun, function(x) sum(is.na(x)))
+```
+
+
+#check number of numerical variables and their correlation with ordered units
+```{r}
+num_var = which(sapply(sun, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+cat('There are', length(num_var), 'numeric variables')
+num_var
+
+cor_numVar = cor(sun[, num_var], use="pairwise.complete.obs") #correlations of all numeric variables
+
+#sort on decreasing correlations with ordered)units
+cor_sorted = as.matrix(sort(cor_numVar[,'ordered_units'], decreasing = TRUE))
+#select only high corelations
+CorHigh = names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar_high = cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar_high, tl.col="black", tl.pos = "lt")
+
+CorLow = names(which(apply(cor_sorted, 1, function(x) abs(x)<=0.5)))
+cor_numVar_low = cor_numVar[CorLow, CorLow]
+
+corrplot(cor_numVar_low, tl.col="black", tl.pos = "lt")
+
+```
+
+```{r}
+library(epitools)
+sun$week_number=as.factor(as.week(sun$week_start, format = "%y-%m-%d", sunday= TRUE)$week)
+write.xlsx(sun, "sales_drivers_fields.xlsx")
+
+```
+
+
+```{r}
+
+cat('There are', length(unique(sun$page_views_rank)), 'unique page view ranks. ')
+cat('There are', length(unique(sun$amazon_category_ordered_units_rank)), 'unique amazon category ordered units rank. ')
+cat('There are', length(unique(sun$amazon_subcategory_ordered_units_rank)), 'unique amazon subcategory ordered units rank. ')
+
+cat_var = which(sapply(sun, is.factor)) #index vector numeric variables
+cat_var= names(cat_var) #saving names vector for use later on
+cat('There are', length(cat_var), 'categorical variables. ')
+cat(' ')
+
+cat('There are', length(unique(sun$asin)), 'unique asin. ')
+cat('There are', length(unique(sun$upc_code)), 'unique upc code. ')
+cat('There are', length(unique(sun$title)), 'unique sun products. ')
+```
+```{r}
+#Insights
+ggplot(sun, aes(y=amazon_category_ordered_units_rank, x=category)) + geom_boxplot()
+
+ggplot(sun, aes(y=amazon_category_ordered_units_rank, x=product_group)) + geom_boxplot() #large variance in units ordered in beauty but more consistent in pantry  department
+
+table(sun$category, sun$product_group)
+table(sun$subcategory, sun$product_group)
+table(sun$replenishment_category, sun$product_group)
+#table(sun$title, sun$replenishment_category)
+#table(sun$title, sun$subcategory)
+
+
+```
+```{r}
+ggplot(sun, aes(y=ordered_units, x=category)) + geom_boxplot()  # there is more units ordered when listed under beauty product group
+
+ggplot(sun, aes(y=ordered_units, x=product_group)) + geom_boxplot()
+
+ggplot(sun, aes(y=average_ordered_price, x=product_group)) + geom_boxplot()
+
+ggplot(sun, aes(x=average_ordered_price, y=ordered_units)) + geom_point()
+
+ggplot(sun, aes(y=average_ordered_price, x=replenishment_category)) + geom_boxplot()
+#ggplot(sun, aes(y=unsellable_on_hand_units, x=product_group)) + geom_boxplot()
+ggplot(sun, aes(x=average_shipped_price, y=ordered_units)) + geom_point()
+
+ggplot(sun, aes(x=amazon_category_ordered_units_rank, y=ordered_units)) + geom_point()
+```
+
+
+
+
+
+
+THE END
+
+#Based on the correlation plot, average shipped price has some correlation with orderd units. The other fields whether dependent or not on ordered units is not relevant to the business problem.
+```{r}
+library(corrplot)
+
+#sun[is.na(sun[-c("week_start", "week_end", "release_date")])]=0
+num_var = which(sapply(sun, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+
+#sun[,num_var][is.na(sun[, num_var])]= 0
+ship=names(sun[,(grep("ship", names(sun)))])
+
+cor_ship=cor(sun$ordered_units, sun[,ship])
+
+corrplot(cor_ship, tl.col="black", tl.pos = "lt")
+ship1=cbind(sun[,ship[1]])
+```
+```{r}
+sun_new=sun
+sun_new=sun[,!names(sun) %in% c(ship)]
+sun_new = cbind(sun_new, ship1)
+```
+
+#analyze all ranks in the dataset
+Since these are ranks they need to be anlayzed more and hence only the ranks related to orders will be considered along with page view rank
+```{r}
+rank=names(sun[,(grep("rank", names(sun)))])
+cor_rank=cor(sun$ordered_units, sun[,rank])
+corrplot(cor_rank, tl.col="black", tl.pos = "lt")
+rank1=sun[,rank[c(4, 5, 6, 13)]]
+sun_new=sun_new[,!names(sun_new) %in% c(rank)]
+sun_new = cbind(sun_new, rank1)
+```
+
+#Analyze all trends in the dataset
+orders_year_over_year_trend
+```{r}
+trend=names(sun[,(grep("trend", names(sun)))])
+cor_trend=cor(sun$ordered_units, sun[,trend])
+corrplot(cor_trend, tl.col="black", tl.pos = "lt")
+sun_new=sun_new[,!names(sun_new) %in% c(trend)]
+```
+
+#Analyse all indexes in the dataset
+page view and unique view are highly correlated with ordered units and henec will be used for analysis 
+```{r}
+index=names(sun[,(grep("index", names(sun)))])
+cor_index=cor(sun$ordered_units, sun[,index])
+corrplot(cor_index, tl.col="black", tl.pos = "lt")
+
+```
+Assuming all sellable and unsellable units are required for analysis
+```{r}
+sellable=names(sun[,(grep("sellable", names(sun)))])
+cor_sellable=cor(sun$ordered_units, sun[,sellable])
+corrplot(cor_sellable, tl.col="black", tl.pos = "lt")
+sellable1=sun[,sellable[c(1:2)]]
+sun_new=sun_new[,!names(sun_new) %in% c(sellable)]
+sun_new = cbind(sun_new, sellable1)
+```
+Analyze conversion rates
+conversion not required
+```{r}
+conversion=names(sun[,(grep("conversion", names(sun)))])
+cor_conversion=cor(sun$ordered_units, sun[,conversion])
+corrplot(cor_conversion, tl.col="black", tl.pos = "lt")
+sun_new=sun_new[,!names(sun_new) %in% c(conversion)]
+
+```
+
+
+Remove forecast for further analysis
+```{r}
+forecast=names(sun[,(grep("forecast", names(sun)))])
+sun_new=sun_new[,!names(sun_new) %in% c(forecast)]
+```
+

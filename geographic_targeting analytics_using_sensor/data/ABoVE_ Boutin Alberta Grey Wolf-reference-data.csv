@@ -1,0 +1,49 @@
+tag-id,animal-id,animal-taxon,deploy-on-date,deploy-off-date,animal-death-comments,animal-life-stage,animal-sex,attachment-type,deployment-comments,deployment-end-comments,deployment-id,manipulation-type,study-site,tag-beacon-frequency,tag-manufacturer-name,tag-mass,tag-model,tag-readout-method
+15009,15009,Canis lupus,,,,, ,collar,,,15009,none,,,likely Vectronic,,,satellite
+15008,15008,Canis lupus,,,,, ,collar,,,15008,none,,,likely Vectronic,,,satellite
+35260,35260,Canis lupus,,,,, ,collar,,,35260,none,,,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33676,33676,Canis lupus,,,,, ,collar,,,33676,none,,152.6,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32252,32252,Canis lupus,2012-03-17 00:00:00.000,,,AD,m,collar,body length 154 cm; chest girth 56 cm; body condition Excellent,,32252,none,Ells Pack,152.05,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32265,32265,Canis lupus,2012-03-17 00:00:00.000,,,AD,m,collar,body length 141 cm; chest girth 63 cm; body condition Moderate,,32265,none,Horizon Pack,152.8,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32257,32257,Canis lupus,2012-03-17 00:00:00.000,,Has been beat up by moose,AD,m,collar,body length 142 cm; chest girth 60 cm; body condition Poor,,32257,none,North Pack,152.4,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32256,32256,Canis lupus,2012-03-17 00:00:00.000,,,AD,f,collar,body length 137 cm; chest girth 59 cm; body condition Very Good,,32256,none,North Pack,152.36,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32266,32266,Canis lupus,2012-03-17 00:00:00.000,,,AD,f,collar,body length 137 cm; chest girth 51 cm; body condition Very Good,,32266,none,Ells Pack,152.84,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32264,32264,Canis lupus,2012-03-17 00:00:00.000,,,AD,f,collar,body length 123 cm; chest girth 52 cm; body condition Very Good,,32264,none,North Pack,152.68,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32261,32261A,Canis lupus,2012-03-18 00:00:00.000,2012-05-14 23:59:00.000,,AD,m,collar,body length 142 cm; chest girth 68 cm; body condition Moderate,collar chewed off,32261A,none,Steepbank Pack,152.52,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32255,32255,Canis lupus,2012-03-19 00:00:00.000,,,AD,f,collar,body length 147 cm; chest girth 66 cm; body condition Excellent,,32255,none,Grand Rapids Pack,152.32,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32268,32268,Canis lupus,2012-03-19 00:00:00.000,,,AD,m,collar,body length 143 cm; chest girth 59 cm; body condition Moderate,,32268,none,Horizon Pack,152.9,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32258,32258,Canis lupus,2012-03-19 00:00:00.000,,,AD,f,collar,body length 141 cm; chest girth 61 cm; body condition Excellent,,32258,none,Steepbank Pack,152.44,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32263,32263A,Canis lupus,2012-03-19 00:00:00.000,2012-05-28 23:59:00.000,,AD,f,collar,body length 141 cm; chest girth 63 cm; body condition Very Good,trapped by Formula Sports guy,32263A,none,Clearwater Pack,152.58,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32270,32270,Canis lupus,2012-03-19 00:00:00.000,2012-12-17 23:59:00.000,Beaten up by moose or wolf,AD,m,collar,body length 164 cm; chest girth 75 cm; body condition Excellent,,32270,none,Grand Rapids Pack,152.98,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32267,32267,Canis lupus,2012-03-19 00:00:00.000,,,AD,m,collar,body length 158 cm; chest girth 79 cm; body condition Excellent,,32267,none,South Athabasca Pack,152.888,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32251,32251,Canis lupus,2012-03-20 00:00:00.000,,,AD,m,collar,body length 168 cm; chest girth 67 cm; body condition Excellent,,32251,none,McLelland Pack,152.03,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32269,32269_33678,Canis lupus,2012-03-20 00:00:00.000,2012-12-18 23:59:00.000,,AD,f,collar,body length 148 cm; chest girth 62 cm; body condition Excellent,"No satelite communication, no VHF signal",32269,none,McKay Pack,152.94,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32253,32253,Canis lupus,2012-03-20 00:00:00.000,,,AD,m,collar,body length 157 cm; chest girth 68 cm; body condition Excellent,,32253,none,South Athabasca Pack,152.26,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32262,32262_33668,Canis lupus,2012-03-20 00:00:00.000,2012-10-25 23:59:00.000,,AD,,collar,,,32262,none,McLelland Pack,152.56,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32259,32259,Canis lupus,2012-03-20 00:00:00.000,,,AD,m,collar,body length 167 cm; chest girth 79 cm; body condition Excellent,,32259,none,McKay Pack,152.48,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32260,32260,Canis lupus,2012-03-20 00:00:00.000,,,AD,f,collar,body length 157 cm; chest girth 68 cm; body condition Very Good,,32260,none,Clearwater Pack,152.5,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33678,32269_33678,Canis lupus,2012-12-18 00:00:00.000,2012-12-25 23:59:00.000,,AD,f,collar,body length 149 cm; chest girth 88 cm,,33678A,none,McKay Pack,152.71,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33669,33669,Canis lupus,2012-12-18 00:00:00.000,,,AD,f,collar,body length 127 cm; chest girth 80 cm; body condition Very Good,,33669,none,Steepbank Pack,152.1,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33667,33667,Canis lupus,2012-12-19 00:00:00.000,,,AD,m,collar,body length 149 cm; chest girth 89 cm; body condition Very Good,,33667,none,North Pack,152.0,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33681,33681,Canis lupus,2012-12-19 00:00:00.000,,,AD,f,collar,body length 149 cm; chest girth 86 cm; body condition Excellent,,33681,none,Frostbite Pack,152.86,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33670,33670,Canis lupus,2012-12-19 00:00:00.000,,,AD, ,collar,body length 144 cm; chest girth 84 cm; body condition Very Good,,33670,none,McKay Pack,152.13,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33671,33671,Canis lupus,2012-12-19 00:00:00.000,,,AD,m,collar,body length 153 cm; chest girth 95 cm; body condition Very Good,,33671,none,Clearwater Pack,152.16,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33674,33674,Canis lupus,2012-12-19 00:00:00.000,,,AD,m,collar,body length 142 cm; chest girth 92 cm; body condition Very Good,,33674,none,Grand Rapids Pack,152.38,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33672,33672,Canis lupus,2012-12-19 00:00:00.000,,,AD,m,collar,body length 152 cm; chest girth 89 cm; body condition Very Good,,33672,none,South Athabasca Pack,152.2,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33677,33677,Canis lupus,2012-12-20 00:00:00.000,,,AD,f,collar,body length 140 cm; chest girth 80 cm,,33677,none,Clearwater Pack,152.63,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33668,32262_33668,Canis lupus,2012-12-20 00:00:00.000,,,AD,,collar,,,33668,none,McLelland Pack,152.07,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33679,33679,Canis lupus,2012-12-20 00:00:00.000,,,AD,m,collar,body length 148 cm; chest girth 89 cm; body condition Very Good; moves within Horizon Pack as well?Lone wolf?,,33679,none,North Pack,152.74,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33680,33680,Canis lupus,2012-12-20 00:00:00.000,,,AD,f,collar,body length 135 cm; chest girth 76 cm; body condition Very Good,,33680,none,Grand Rapids Pack,152.78,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33673,33673,Canis lupus,2012-12-21 00:00:00.000,2013-06-17 23:59:00.000,Hunting mortality,subad,f,collar,body length 136 cm; chest girth 76 cm; body condition Moderate,,33673,none,Ells Pack,152.23,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33675,33675,Canis lupus,2012-12-21 00:00:00.000,,,YLY, ,collar,body condition Very Good,,33675,none,Frostbite Pack,152.42,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+32261,32261B,Canis lupus,2013-03-08 00:00:00.000,,,, ,collar,,,32261B,none,City Pack,152.52,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+13793,13793,Canis lupus,2013-12-17 00:00:00.000,,,, ,collar,,,13793,none,,,likely Vectronic,,,satellite
+13794,13794,Canis lupus,2013-12-18 00:00:00.000,,,, ,collar,,,13794,none,,,likely Vectronic,,,satellite
+13792,13792,Canis lupus,2013-12-18 00:00:00.000,,,, ,collar,,,13792,none,,,likely Vectronic,,,satellite
+13790,13790,Canis lupus,2013-12-18 00:00:00.000,,,, ,collar,,,13790,none,,,likely Vectronic,,,satellite
+32254,32254,Canis lupus,2013-12-18 00:00:00.000,,,, ,collar,,,32254,none,,152.3,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+13791,13791,Canis lupus,2013-12-19 00:00:00.000,,,, ,collar,,,13791,none,,,likely Vectronic,,,satellite
+32263,32263B,Canis lupus,2013-12-20 00:00:00.000,,,, ,collar,,,32263B,none,,152.58,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+33678,33678B,Canis lupus,2013-12-20 00:00:00.000,,,, ,collar,,,33678B,none,,152.71,Lotek Inc.,785.0,IridiumTrack M 2D,satellite
+,32262,Canis lupus,,,,,f,,,,,,,,,,,
+,33668,Canis lupus,,,,,m,,,,,,,,,,,

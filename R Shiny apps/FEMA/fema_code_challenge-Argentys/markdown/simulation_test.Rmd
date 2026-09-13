@@ -1,0 +1,112 @@
+---
+title: "FEMA Code Challenge - Statistical Analysis"
+author: "Nikolai Shaposhnikov"
+date: "2022-08-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulation Tests
+
+In this session we test how the simulation code.
+
+```{r}
+library(ggplot2)
+library(ggalt)
+
+source('../simulation/deployment_simulation.r')
+```
+
+## Run simulations
+
+```{r}
+num_years = 5
+responder_num = 31
+
+sim <- simulate_deployments(5)
+metrics <- sim$metrics
+deployments = resp$data
+processed_deployments <- process_deployments(responder_num = responder_num,deployments)
+summary(processed_deployments)
+```
+
+Plot the deployment timeline:
+```{r}
+gg <- ggplot(processed_deployments, 
+             aes(
+               x=deployment_start, 
+               xend=deployment_end, 
+               y=responder_id, group=responder_id),xlab="Time, hrs") + 
+        geom_dumbbell(color="#00ba38", 
+                      size=1.5,
+                      size_x = 0.0,
+                      size_xend = 0.0) + 
+        #scale_x_continuous(label=deployment_delay) + 
+        labs(x='Time, Hrs', 
+             y='Responder ID', 
+             title="Deployments Chart", 
+             subtitle="Simulated data", 
+             caption="") +
+        theme(plot.title = element_text(hjust=0.5, face="bold"),
+              plot.background=element_rect(fill="#f7f7f7"),
+              panel.background=element_rect(fill="#f7f7f7"),
+              panel.grid.minor=element_blank(),
+              panel.grid.major.y=element_blank(),
+              panel.grid.major.x=element_line(),
+              axis.ticks=element_blank(),
+              legend.position="top",
+              panel.border=element_blank())
+plot(gg)
+```
+Calculate the number of deployments in the cue:
+```{r}
+num_of_deployments = length(processed_deployments$responder_id)
+
+num_of_depl_received <- integer(num_of_deployments)
+num_of_depl_started <- integer(num_of_deployments)
+num_of_depl_ended <- integer(num_of_deployments)
+
+for (i in (1:num_of_deployments)){
+  t = processed_deployments$request_received_time[i]
+  num_of_depl_received[i] <- sum(as.numeric(processed_deployments$request_received_time < t))
+  num_of_depl_started[i] <- sum(as.numeric(processed_deployments$deployment_start < t))
+  num_of_depl_ended[i] <- sum(as.numeric(processed_deployments$deployment_end < t))
+}
+
+depl_num <- num_of_depl_started - num_of_depl_ended
+cue_num <- num_of_depl_received - num_of_depl_started
+```
+
+
+Plot the number of deployments in the cue:
+```{r}
+plot(processed_deployments$deployment_start,cue_num, type = 'l' , 
+     ylab= 'Number of deployments', xlab = 'Time, Hrs', main = "Number of deployments in the cue")
+
+```
+```{r}
+plot(processed_deployments$deployment_start,depl_num, type = 'l' , 
+     ylab= 'Number of deployments', xlab = 'Time, Hrs', main = "Number of deployments in execution")
+
+```
+Calculate suggested number of responders.
+The `cost_ratio` is the ratio of the cost of an hour of deployment fulfillment delay to the costs of an hour of a responder bench time:
+
+
+```{r}
+cost_ratio = 0.5
+suggested_responder_num <- suggest_responder_num(resp,0.5)
+suggested_responder_num
+```
+
+
+
+Run tests:
+
+```{r}
+library(testthat)
+testthat::test_dir('../tests')
+```

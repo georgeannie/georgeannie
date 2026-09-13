@@ -1,0 +1,122 @@
+---
+title: "JJ forecasting"
+author: "Annie George"
+date: "November 19, 2018"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(dplyr)
+library(tidyr)
+library(janitor)
+library(fpp2)
+
+```
+
+```{r cars, echo = TRUE}
+sun=read_excel("sun_drivers.xlsx",  col_names=TRUE)
+sun=clean_names(sun)
+fc=sun%>% group_by(week_start) %>%summarise(Order_units=sum(ordered_units))
+fc=na.omit(fc) 
+
+fc$week_start=as.Date(fc$week_start)
+sun_ts <- ts(fc$Order_units)
+tsclean(sun_ts)
+
+library(xts)
+library(lubridate)
+sun_ts <- ts(fc$Order_units, freq=52, start=c(2014,25), end=c(2017,21)) 
+
+sun_ts <- ts(fc$Order_units, 
+   freq=365.25/7, 
+     start= decimal_date(ymd("2014-06-15")))
+sun_ts=as.xts(sun_ts)
+autoplot(sun_ts) +
+  ggtitle("Order units sold for Neutrogena brand - Weekly data") +
+  xlab("Year") +
+  ylab("Order Units")
+
+sun_ts_train =  window(sun_ts, start , 
+     start= decimal_date(ymd("2014-06-15")))
+
+
+ggseasonplot(sun_ts, year.labels=TRUE, year.labels.left=TRUE) +
+  ylab("$ million") +
+  ggtitle("Seasonal plot: Order units")
+
+ggseasonplot(sun_ts, polar=TRUE) +
+  ylab("$ million") +
+  ggtitle("Polar seasonal plot: Order units sold")
+ggsubseriesplot(sun_ts) +
+  ylab("$ million") +
+  ggtitle("Seasonal subseries plot: Order units sold")
+
+
+sun1 <- window(sun_ts, start=c(2014,06)sun, end=c(2017,04))
+gglagplot(sun1)
+ggAcf(sun1, lag=52)
+
+autoplot(sun1) +
+  autolayer(meanf(sun1, h=11),
+            series="Mean", PI=FALSE) +
+  autolayer(naive(sun1, h=11),
+            series="Naïve", PI=FALSE) +
+  autolayer(snaive(sun1, h=11),
+            series="Seasonal naïve", PI=FALSE) +
+  autolayer(rwf(sun1, drift=TRUE, h=40),
+            series="Drift", PI=FALSE) +
+  ggtitle("Forecasts for weekly order units sales") +
+  xlab("Year") + ylab("Order Units sales") +
+  guides(colour=guide_legend(title="Forecast"))
+
+
+checkresiduals(naive(sun1))  #not stationary
+
+sunfit1 <- meanf(sun1,h=3)
+sunfit2 <- rwf(sun1,h=3)
+autoplot(window(sun_ts, start=c(2014,25))) +
+  autolayer(sunfit1, series="Mean", PI=FALSE) +
+  autolayer(sunfit2, series="Naïve", PI=FALSE) +
+  xlab("Year") + ylab("Order units") +
+  ggtitle("Forecasts for order units sales") +
+  guides(colour=guide_legend(title="Forecast"))
+sun2 <- window(sun_ts, start=c(2017,01))
+accuracy(sunfit1, sun2)
+accuracy(sunfit2, sun2)
+accuracy(beerfit3, beer3)
+
+
+
+
+
+decompose(sun_ts) %>% autoplot()
+
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+

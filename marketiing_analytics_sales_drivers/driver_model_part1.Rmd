@@ -1,0 +1,846 @@
+---
+title: "driver_modelling"
+author: "Annie George"
+date: "November 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(plyr)
+library(tidyr)
+library(caret)
+library(janitor)
+library(MASS)
+library(car)
+```
+<b>Part I. Cleaning</b>
+Read the merged driver file for sun care products and clean the column names to lower case and underscore eg: week_start
+```{r}
+sun=read_excel("sun_drivers.xlsx",  col_names=TRUE)
+sun=clean_names(sun)
+```
+1. Fill in UNKNOWN category with known category values for the product
+2. Fill in UNKNOWN subcategory with known category values for the product
+3. Fixing title with similar names but differnt caps (IDEA!!! Cluster to see the names have an effect such as ULTRA, SHEER, OIL_FREE, BROAD SPECTRUM)
+```{r}
+#1. Find titles with category UNKNOWN
+#2. Get all unique category for the title (with UNKNOW) to provide a value for UNKNOWN 
+#3. Manipulated 2 entries, 2 more UNKNOWNS remain
+temp=unique(sun[sun$category == "UNKNOWN" & !is.na(sun$category),c("title", "category", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "category", "product_group")])
+sun$category[sun$title=="Neutrogena Sunscreen Ultra Sheer Stick SPF 70, 1.5 Ounce" & sun$category=="UNKNOWN"] = "1900  Mass Skin Care - Pantry"
+sun$category[sun$title=="Neutrogena, Ultra Sheer Sunblock Dry-Touch, SPF 100+, 3 fl oz" & sun$category=="UNKNOWN"] = "0900 GM/HBC"
+
+#1. Find titles with category UNKNOWN
+#2. Get all unique category for the title (with UNKNOW) to provide a value for UNKNOWN 
+#3. Manipulated 2 entries, 2 more UNKNOWNS remain
+temp=unique(sun[sun$subcategory == "UNKNOWN" & !is.na(sun$subcategory),c("title", "subcategory", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "subcategory", "product_group")])
+sun$subcategory[sun$title=="Neutrogena Sunscreen Ultra Sheer Stick SPF 70, 1.5 Ounce" & sun$subcategory=="UNKNOWN"] = "1970  Sun"
+sun$subcategory[sun$title=="Neutrogena, Ultra Sheer Sunblock Dry-Touch, SPF 100+, 3 fl oz" & sun$subcategory=="UNKNOWN"] = "0930 Beauty"
+
+#Fix the title
+temp=unique(sun[,c("title", "category", "subcategory", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "category", "subcategory", "product_group")]) 
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 45, 3 Fl. Oz,"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen, Broad Spectrum Spf 45, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum SPF 70, 0.47 Ounce"] = "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum Spf 70, 0.47 Oz."
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fluid"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. oz"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"
+
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen, Broad Spectrum Spf 100, 3 Fl. O"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum Spf 70, 0.47 Oz."] = "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum SPF 70, 0.47 Oz"
+sun$title[sun$title == "Neutrogena Ultra Sheer Face & Body Stick Sunscreen Broad Spectrum Spf 70, 1"] = "Neutrogena Ultra Sheer Face & Body Stick Sunscreen Broad Spectrum SPF 70, 1"
+sun$title[sun$title == "Neutrogena Age Shield Face Oil-Free Lotion Sunscreen Broad Spectrum Spf 110"] = "Neutrogena Age Shield Face Oil-Free Lotion Sunscreen Broad Spectrum SPF 110"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Sunscreen Spray, Twin Pack, 2 Count"] = "Neutrogena Wet Skin Kids Sunscreen Spray, Twin Pack"
+sun$title[sun$title == "Neutrogena SPF 70 Plus Wet Skin Kids Sunscreen Stick Broad Spectrum, 0.47 O"] = "Neutrogena SPF 70 Plus Wet Skin Kids Suncreen Stick Broad Spectrum, 0.47 Ou"
+sun$title[sun$title == "NEUTROGENA AGE SHLD SS SPF-110 3 OZ"] = "Neutrogena Age Shld Ss Spf-110 3 OZ" 
+sun$title[sun$title == "Neutrogena Ultra Sheer Drytouch Sunscreen, SPF 45, 3 Ounce (Pack of 2)"] = "Neutrogena Ultra Sheer Drytouch Sunscreen, SPF 45, 3 Ounce Twin pack" 
+
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry Touch Sunscreen SPF 100, 3 oz., (Packaging May V"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz" 
+
+sun$title[sun$title == "Neutrogena, Age Shield Sunblock Lotion Face, SPF 110, 3 fl oz"] = "Neutrogena, Age Shield Sunblock Lotion Face, SPF 110, 3 fl oz"
+
+
+sun$title[sun$title == "Neutrogena Beach Defense Sunscreen Body Lotion Broad Spectrum Spf 70, 6.7 O"] = "Neutrogena Beach Defense Sunscreen Lotion Broad Spectrum SPF 70, 6.7 Oz"
+
+sun$title[sun$title == "Neutrogena Beach Defense Sunscreen Lotion with Broad Spectrum SPF 70 Protec"] = "Neutrogena Beach Defense Sunscreen Lotion Broad Spectrum SPF 70, 6.7 Oz"
+
+unique(sun[,c("category", "release_date")])
+unique(sun[sun$title==temp$title, c("title", "category", "subcategory", "product_group", "release_date")]) 
+```
+
+Add week number 1-52
+```{r}
+library(epitools)
+sun$week_number=as.factor(as.week(sun$week_start, format = "%y-%m-%d", sunday= TRUE)$week)
+```
+
+Converting categorical to factors for modeling
+```{r}
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+```
+
+1. Find the NAs for rank fields and average ordered 
+2. Remove extra NAs
+3. Fix all those with ranks
+```{r}
+sum(is.na(sun))
+colSums(is.na(sun))
+
+#Remove NA rows for week start
+sun=sun[!is.na(sun$week_start),]
+
+#All average ordered/shipped price with NAs have ordered/shipped amount as 0, hence the NA's will be set as zeros
+sun[is.na(sun$average_ordered_price),c("average_ordered_price", "ordered_amount")]
+sun$average_ordered_price[is.na(sun$average_ordered_price)] = 0 
+
+sun[is.na(sun$average_shipped_price),c("average_shipped_price", "shipped_amount")]
+sun$average_shipped_price[is.na(sun$average_shipped_price)] = 0
+
+
+#Set NAs in cat/subcat ordered sales rank based on ordered amount, If ordered amount is zero, set it as zero
+#Set NAs in cat/subcat ordered units rank based on ordered units, If ordered units is zero, set it as zero
+#Set NAs in cat/subcat shipped sales rank based on shipped amount, If shipped amount is zero, set it as zero
+#Set NAs in cat/subcat shipped units rank based on shipped units, If shipped units is zero, set it as zero
+colSums(is.na(sun))
+sun[is.na(sun$amazon_category_ordered_sales_rank & sun$ordered_amount == 0),c("amazon_category_ordered_sales_rank", "amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "ordered_amount")]
+sun$amazon_category_ordered_sales_rank[is.na(sun$amazon_category_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_subcategory_ordered_sales_rank[is.na(sun$amazon_subcategory_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_ordered_sales_rank[is.na(sun$amazon_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_shipped_sales_rank[is.na(sun$amazon_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_category_shipped_sales_rank[is.na(sun$amazon_category_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_subcategory_shipped_sales_rank[is.na(sun$amazon_subcategory_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_category_ordered_units_rank[is.na(sun$amazon_category_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_subcategory_ordered_units_rank[is.na(sun$amazon_subcategory_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_ordered_units_rank[is.na(sun$amazon_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_category_shipped_units_rank[is.na(sun$amazon_category_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+sun$amazon_subcategory_shipped_units_rank[is.na(sun$amazon_subcategory_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+sun$amazon_shipped_units_rank[is.na(sun$amazon_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+#Page view ranks with NA and having zero ordered units will be set as zero
+colSums(is.na(sun))
+sun[is.na(sun$page_views_rank),c("amazon_category_ordered_sales_rank", "amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "ordered_units", "page_views_rank")]
+sun$page_views_rank[is.na(sun$page_views_rank) & sun$ordered_units == 0] = 0
+
+#That still leaves us with 23 rows with field ranks as NA. Hence these will be removed from analysis 
+colSums(is.na(sun))
+sun[is.na(sun$page_views_rank),]
+sun=sun[!is.na(sun$page_views_rank),] 
+
+colSums(is.na(sun))
+sun=sun[!is.na(sun$amazon_ordered_sales_rank),] 
+```
+
+Set a new variable which will say if the product is sold only in prime or online or both
+only prime = pn, only com =com, both =pncom
+```{r}
+sun[is.na(sun$platform1), c("platform1", "platform2")]
+sun$platform_type="NA"
+sun$platform_type[!is.na(sun$platform1) & !is.na(sun$platform2)] = "pncom" 
+sun$platform_type[(is.na(sun$platform1) & sun$platform2 == "com") | (is.na(sun$platform2) & sun$platform1 == "com")] = "com"
+sun$platform_type[(is.na(sun$platform1) & sun$platform2 == "pn") | (is.na(sun$platform2) & sun$platform1 == "pn")] = "pn" 
+```
+Analysis before finalizing the file
+
+```{r}
+#avg_list=sun %>%group_by(title) %>%summarise("avg_price" = mean(list_price))
+#ggplot(avg_list, aes(y=sort(avg_price), x=title)) + geom_bar(stat="identity") +coord_flip()
+#avg_list_upc=sun %>% select(upc_code, list_price) %>%group_by(upc_code) %>%summarise(avg_price=mean(list_price)) 
+#ggplot(avg_list_upc, aes(y=(avg_price), x=upc_code)) + geom_bar(stat="identity") +coord_flip()
+unique(sun[sun$list_price==0,c("title", "upc_code", "list_price", "ordered_units", "shipped_units")])
+table("category"=sun$category, "subcategory"=sun$subcategory)
+unique(sun[sun$category=="UNKNOWN", c("title", "category")])
+(sun[sun$title=="Neutrogena Age Shld Ss Spf-110 3 OZ", c("title","shipped_units", "ordered_units")])
+
+#can remove the product as it has no sales by any means - NO
+sun=sun[!sun$title=="Neutrogena Age Shld Ss Spf-110 3 OZ", ]
+
+unique(sun[, c("title", "category", "subcategory", "asin", "upc_code")]) %>% group_by(category, subcategory) 
+
+unique(sun[sun$list_price==0, c("category", "subcategory", "title", "ordered_units", "shipped_units")])
+```
+Tweak box cox lambda order
+```{r}
+sun$diff_units=sun$ordered_units -  sun$shipped_units
+hist(BoxCox(sun$ordered_units, lambda=0.4))
+sun$transformed_order_units=BoxCox(sun$ordered_units, lambda=0.4)
+write.xlsx(sun, "clean_data.xlsx")
+```
+
+Remove all trends, forecasts, currency code, shipped cost of goods sold
+Check collinearity
+
+
+```{r}
+sun=read_excel("clean_data.xlsx",  col_names=TRUE)
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+sun$platform_type = as.factor(sun$platform_type)
+
+sun=sun[,!names(sun) %in% c("ordered_amount_trend", 
+                            "ordered_amount_year_over_year_trend", 
+                            "orders_trend", "orders_year_over_year_trend", 
+                            "ordered_units_trend", 
+                            "ordered_units_year_over_year_trend", 
+                            "shipped_amount_trend", 
+                            "shipped_amount_year_over_year_trend", 
+                            "shipped_units_trend", 
+                            "shipped_units_year_over_year_trend",  
+                            "unfilled_customer_ordered_units_trend", 
+                            "unfilled_customer_ordered_units_year_over_year_trend", 
+                            "unique_visitors_trend", 
+                            "unique_visitors_year_over_year_trend", 
+                            "conversion_rate_trend", 
+                            "conversion_rate_year_over_year_trend", 
+                            "shipped_cost_of_goods_sold_trend", 
+                            "shipped_cost_of_goods_sold_year_over_year_trend", 
+                            "page_views_year_over_year_trend",  
+                            "page_views_trend",
+                            "conversion_percentile", 
+                            "x1_week_forecast", 
+                            "x4_week_forecast", 
+                            "x12_week_forecast", 
+                            "shipped_cost_of_goods_sold", 
+                            "currency_code")]
+                          
+
+#"amazon_ordered_sales_rank", "amazon_shipped_units_rank", "amazon_category_shipped_units_rank", "amazon_subcategory_shipped_units_rank")] -- use later
+
+```
+
+Get all the numerical variables in the dataset
+```{r}
+num_var = which(sapply(sun, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+num_var
+```
+
+Finding correlated variables with the transformed order units
+```{r}
+library(psych)
+library(caret)
+library(GGally)
+library(Hmisc)
+
+ggcorr(sun[,num_var])
+cor(as.matrix(sun[,num_var]))
+  
+#remove the following correlated
+set.seed(222)
+
+#The correlated variables with correlation coefficient above 0.7 is removed 
+#The below code has been iterated several times to find the best possible set of fields that can be used in the model
+train = sun[, !names(sun) %in% c("shipped_units", "shipped_amount", "unique_visitors_index", "page_views_index", "ordered_amount", "orders", "unfilled_customer_ordered_units", "transformed_order_units", "average_customer_review")] 
+
+num_var = which(sapply(train, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+ggcorr(train[,num_var])
+cor(as.matrix(train[,num_var]))
+cortest.bartlett(train[,num_var], n=nrow(train))
+
+```
+
+Model 1: Linear Model using the dummy train
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin, category, replenishent category, amazon_subcategory_ordered_units_rank  -list_price  -amazon_category_ordered_units_rank -  -unsellable_on_hand_cost  - amazon_subcategory_shipped_units_rank - unsellable_on_hand_cost     
+Results: 86% variation is explained using 22 variables
+```{r}
+names(train)
+dummy_model_lm = dummyVars( ~ ., train[,-c(1:9, 11:12, 36:38)])
+dummy_train_lm = data.frame(predict(dummy_model_lm, train[,-c(1:9,11:12, 36:38)]))
+
+# Custom Control Parameters
+custom = trainControl(method = "repeatedcv",
+                       number = 5,
+                       repeats = 2,
+                       verboseIter = T)
+
+lm = train(ordered_units ~.  -unsellable_on_hand_cost  -sellable_on_hand_cost -amazon_subcategory_shipped_units_rank -amazon_subcategory_ordered_units_rank  -average_shipped_price -amazon_category_shipped_units_rank 
+        -amazon_shipped_sales_rank -amazon_ordered_units_rank -unsellable_on_hand_units  -amazon_shipped_units_rank  - amazon_subcategory_shipped_sales_rank -amazon_category_shipped_sales_rank  -list_price    ,
+
+           #-amazon_subcategory_ordered_units_rank  - -amazon_category_ordered_units_rank -  amazon_subcategory_shipped_units_rank
+ #         -amazon_ordered_units_rank - amazon_shipped_sales_rank  -amazon_category_shipped_sales_rank   #-amazon_subcategory_shipped_sales_rank -amazon_shipped_units_rank  -amazon_category_shipped_units_rank                       
+           dummy_train_lm,
+            method="lm",
+            preProcess = c("center", "scale"),
+            trControl=custom)
+anova(lm$finalModel)
+
+summary(lm)
+lm$results
+plot(lm$finalModel)
+plot(varImp(lm), top=20)
+lm$finalModel
+dwt(residuals(lm))
+```
+
+Model 2: Lasso Model using the dummy train
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin, category, Results: lambda =0.00001 explains 86%
+                80% variability is explained by 12-15 variables, hence only 15 top varaibles are chosen
+
+```{r}
+names(train)
+dummy_model_las = dummyVars( ~ ., train[,-c(1:9, 37:38, 40)])
+dummy_train_las= data.frame(predict(dummy_model_las, train[,-c(1:9, 37:38, 40)]))
+
+#capturing J&J req though the variables removed from the model are actually significant. Removing the fields not asked for explains 83% using 12-13 variables
+
+lasso = train(ordered_units ~ . -unsellable_on_hand_cost  -sellable_on_hand_cost   -amazon_subcategory_ordered_units_rank  -average_shipped_price -unsellable_on_hand_units  -amazon_shipped_units_rank  - amazon_subcategory_shipped_sales_rank -amazon_category_shipped_sales_rank -amazon_shipped_units_rank  -amazon_category_shipped_units_rank -amazon_subcategory_shipped_units_rank  - amazon_shipped_sales_rank -amazon_category_shipped_sales_rank  -amazon_subcategory_shipped_sales_rank -amazon_category_ordered_units_rank -amazon_subcategory_ordered_units_rank -amazon_ordered_units_rank,  
+               dummy_train_las,
+               method="glmnet",
+               tuneGrid=expand.grid(alpha=1,
+                                    lambda=seq(0.00001, 1, length=20)),
+              preProcess = c("center", "scale"),
+              trControl=custom)
+
+plot(lasso)
+lasso$results
+
+plot(lasso$finalModel, xvar = 'dev', label=T)
+plot(varImp(lasso, scale=F), top=13)
+dwt(residuals(lasso))
+
+```
+
+Model 3: Elastic net  
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin, category, Results: lambda =0.00001, alpha =1 explains 85%
+                80% variability is explained by 21 variables, hence only 20 top varaibles are chosen
+```{r}
+names(train)
+dummy_model_en = dummyVars( ~ ., train[,-c(1:9, 36:38, 40)])
+dummy_train_en= data.frame(predict(dummy_model_en, train[,-c(1:9, 36:38, 40)]))
+
+#capturing J&J req though these are actually significant hence removing the fields not asked for explains 83% using 12-13 variables
+
+en = train(ordered_units ~ .  -unsellable_on_hand_cost  -sellable_on_hand_cost -average_shipped_price -unsellable_on_hand_units -amazon_shipped_units_rank  -amazon_category_shipped_sales_rank -amazon_category_shipped_units_rank -amazon_subcategory_shipped_units_rank  - amazon_shipped_sales_rank -amazon_category_shipped_sales_rank  -amazon_subcategory_shipped_sales_rank -amazon_category_ordered_units_rank -amazon_subcategory_ordered_units_rank -amazon_ordered_units_rank -list_price - average_ordered_price ,  
+               dummy_train_en ,
+               method="glmnet",
+               tuneGrid=expand.grid(alpha=seq(0,1,length=10),
+                                    lambda=seq(0.00001, 1, length=30)),
+               preProcess = c("center", "scale"),
+              trControl=custom)
+
+en$results
+plot(en$finalModel, xvar = 'dev', label=T)
+plot(varImp(en), top=25)
+dwt(residuals(en))
+```
+
+Model 4: Stepwise selection  
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin,
+Results: 25 variables explains 75%
+                
+```{r}
+names(train)
+dummy_model_fwd =dummyVars( ~ ., train[,-c(1:9, 11, 12, 36:38, 40)])
+dummy_train_fwd= data.frame(predict(dummy_model_fwd, train[,-c(1:9,11, 12,  36:38, 40)]))
+
+#capturing J&J req though these are actually significant hence removing the fields not asked for explains 62% using 11 variables
+
+fwd = train(ordered_units ~ .  -unsellable_on_hand_cost  -sellable_on_hand_cost -average_shipped_price  -amazon_shipped_units_rank  -amazon_category_shipped_sales_rank -amazon_category_shipped_units_rank -amazon_subcategory_shipped_units_rank  - amazon_shipped_sales_rank -amazon_category_shipped_sales_rank  -amazon_subcategory_shipped_sales_rank -amazon_category_ordered_units_rank -amazon_subcategory_ordered_units_rank -amazon_ordered_units_rank - average_ordered_price , 
+               
+               dummy_train_fwd,
+               method="leapForward", 
+                   tuneGrid=expand.grid(nvmax=c(2:50)),
+            preProcess = c("center", "scale"),
+              trControl=custom)
+
+plot(fwd)
+
+plot(varImp(fwd), top=25)
+dwt(residuals(fwd))
+```
+
+Compare Models 
+ The best model is Elastic net which explains 86% variatiom
+```{r}
+model_list = list(LinearModel=lm, Lasso=lasso, Elasticnet=en, ForwardSelection=fwd)
+res = resamples(model_list)
+summary(res)
+```
+Durbin watson
+```{r}
+library(car)
+dw_list = list(LinearModel=dwt(residuals(lm)), 
+               Lasso=dwt(residuals(lasso)), 
+               Elasticnet=dwt(residuals(en)), 
+               ForwardSelection=dwt(residuals(fwd)))
+dw_list
+```
+
+
+Final Model using the best model
+   alpha    lambda
+      1    0.00001
+The model as before will use 98 variables (including categorical dummy variables) to explain the 87.66% variability
+The list of important variables
+product group
+category
+subcategory
+list price
+average ordered price
+amazon_ordered_sales_rank                     
+amazon_category_ordered_sales_rank            
+amazon_subcategory_ordered_sales_rank         
+customer_reviews                             
+page_views_rank                              
+open_purchase_order_quantity                  
+sellable_on_hand_units                        
+replenishment_category
+week_number
+
+```{r}
+library(glmnet)
+en$bestTune
+
+# Save Final Model for Later Use
+saveRDS(en, "final_model_en.rds")
+fm = readRDS("final_model_en.rds")
+
+final_x= train[,-c(1:9, 36:38, 40)]
+final_x= final_x[,(!names(final_x)%in% c("unsellable_on_hand_cost", "sellable_on_hand_cost", "average_shipped_price", "unsellable_on_hand_units", "amazon_shipped_units_rank", "amazon_category_shipped_sales_rank", "amazon_category_shipped_units_rank", "amazon_subcategory_shipped_units_rank",  "amazon_shipped_sales_rank", "amazon_category_shipped_sales_rank", "amazon_subcategory_shipped_sales_rank", "amazon_category_ordered_units_rank", "amazon_subcategory_ordered_units_rank", "amazon_ordered_units_rank", "list_price" , "average_ordered_price"))]
+
+dummy_final= model.matrix( ~ ., final_x)
+final=glmnet(x=dummy_final, y=train$ordered_units, family = "gaussian", lambda = en$bestTune[2], alpha = en$bestTune[1])
+
+plot(residuals(lasso))
+plot(predict(lasso), residuals(lasso)) #no constant variance
+qqplot(predict(lasso),residuals(lasso))
+hist(residuals(lasso),main='Histogram of residuals',xlab='Standardised
+Residuals',ylab='Frequency')
+
+
+final$beta
+plot(varImp(lasso), top=15)
+
+
+```
+#IF lASSO IS THE BEST 
+
+```{r}
+library(glmnet)
+lasso$bestTune
+
+# Save Final Model for Later Use
+saveRDS(lasso, "final_model_lass.rds")
+fm = readRDS("final_model_lass.rds")
+
+final_x= train[,-c(1:9, 36:38, 40)]
+final_x= final_x[,(!names(final_x)%in% c("unsellable_on_hand_cost", "sellable_on_hand_cost", "average_shipped_price", "unsellable_on_hand_units", "amazon_shipped_units_rank", "amazon_category_shipped_sales_rank", "amazon_category_shipped_units_rank", "amazon_subcategory_shipped_units_rank",  "amazon_shipped_sales_rank", "amazon_category_shipped_sales_rank", "amazon_subcategory_shipped_sales_rank", "amazon_category_ordered_units_rank", "amazon_subcategory_ordered_units_rank", "amazon_ordered_units_rank", "list_price" , "average_ordered_price"))]
+
+dummy_final= model.matrix( ~ ., final_x)
+final=glmnet(x=dummy_final, y=train$ordered_units, family = "gaussian", lambda = lasso$bestTune[2], alpha = lasso$bestTune[1])
+
+plot(residuals(lasso))
+plot(predict(lasso), residuals(lasso)) #no constant variance
+qqplot(predict(lasso),residuals(lasso))
+hist(residuals(lasso),main='Histogram of residuals',xlab='Standardised
+Residuals',ylab='Frequency')
+
+
+final$beta
+plot(varImp(lasso), top=20)
+
+
+```
+
+```{r}
+ggplot(sun, aes(x=sort(week_number), y=ordered_units, col=category)) + geom_boxplot() +
+  ylim(c(0,4000))
+
+ggplot(sun, aes(x=sort(week_number), y=ordered_units, col=subcategory)) + geom_boxplot() +
+  ylim(c(0,4000))   #2 products under 8030 face is popular between 30 and 34th week, why?
+
+tit_subcat=unique(sun[,c("title", "subcategory", "category")])
+table(tit_subcat$category, tit_subcat$subcategory) 
+
+table(tit_subcat$title, tit_subcat$subcategory) 
+
+tit_subcat$title[tit_subcat$subcategory == "8030 Face"]
+tit_subcat$title[tit_subcat$category == "0900 GM/HBC"]
+
+unique(sun$title[(as.numeric(sun$week_number) >="12" & as.numeric(sun$week_number) >="16") & sun$subcategory == "8090 Sun"])
+
+ggplot(sun, aes(x=as.factor(platform_type), fill=category)) + geom_bar() +
+  ylim(c(0,1000)) +  #2 products under 8030 face is popular between 30 and 34th week, why?
+  xlab("Platforms") 
+
+ggplot(sun, aes(x=as.factor(platform_type), fill=subcategory)) + geom_bar() +
+  ylim(c(0,1000)) +  #2 products under 8030 face is popular between 30 and 34th week, why?
+  xlab("Platforms") 
+
+```
+
+
+Part II
+
+```{r}
+factcols = c("amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "amazon_ordered_units_rank", "amazon_category_ordered_units_rank", "amazon_subcategory_ordered_units_rank", "amazon_shipped_sales_rank", "amazon_category_shipped_sales_rank", "amazon_subcategory_shipped_sales_rank", "amazon_subcategory_shipped_units_rank", "page_views_rank", "page_views_index", "unique_visitors_index")
+
+sun[factcols] = lapply(sun[factcols], factor)
+sapply(sun, function(x) sum(is.na(x)))
+
+```
+
+
+#preserve ordered units and remove unfilled customer ordered units and sellable on hand cost
+```{r}
+num_var1 = which(sapply(train, is.numeric)) #index vector numeric variables
+num_var1= names(num_var1) #saving names vector for use later on
+ 
+features=num_var1[-c(3, 7:16, 20, 22)]
+sun_new=train
+#scale all the numerical features
+sun_new[,features]=scale(sun_new[,features])
+
+sunPCA = prcomp(sun_new[,features], scale = TRUE)
+plot(sunPCA, type="l") #variance at second component
+summary(sunPCA)
+sunPCA$rotation
+
+vars_transformed = apply(sunPCA$x, 2, var)
+vars_transformed
+vars_transformed/sum(vars_transformed)  #PC1 explains 42% variation and PC2 explains 17% together explaining 59% PC3 explains 10% adding 69%
+
+# First three principal components explains a lot
+comp = data.frame(sunPCA$x[,1:3])
+# Plot
+plot(comp, pch=16, col=rgb(0,0,0.5))
+
+sunpredictPCA = predict(sunPCA, sun_new[,features])
+sunPCAcols <- cbind(sun_new, as.data.frame(sunpredictPCA)[,1:3])
+
+
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=upc_code),
+               colour='black',
+               pch=21,
+               size=2) +
+    theme_bw()
+
+```
+
+```{r}
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=average_customer_reviews_int),
+               colour='black',
+               pch=21,
+               size=2) +
+    theme_bw()
+```
+
+
+```{r}
+set.seed(145)
+library(factoextra)
+
+fviz_nbclust(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kmeans, method = "wss")  #2clusters 0r 5
+fviz_nbclust(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kmeans, method = "silhouette") #the second method points to 5
+```
+
+```{r}
+kClusters = 4
+kmeansPCA = kmeans(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kClusters, nstart=25, iter.max = 1000)
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=factor(kmeansPCA$cluster)),
+               colour='black',
+               pch=21,
+               size=2) +
+    scale_fill_manual(values = c("black","red", 'green', 'blue', "purple", "orange","white")) +
+    guides(fill=guide_legend(title="Cluster")) +
+    theme_bw()
+kmeansPCA$tot.withinss
+library(cluster)
+library(plotly)
+clusplot(sun_new[,features], kmeansPCA$cluster, color=T, shade=F,labels=0,lines=0, main='k-Means Cluster Analysis')
+kmeansPCA$size
+
+```
+
+
+```{r}
+#library(dplyr)
+library(reshape2)
+sort(table(kmeansPCA$clust))
+sunclust = names(sort(table(kmeansPCA$clust)))
+#sunCluster = sun_new %>% select(asin:title, product_group:subcategory, list_price:orders, unfilled_customer_ordered_units: sellable_on_hand_units)
+sunCluster = sun_new[,c(features, "title", "category", "subcategory", "upc_code", "asin", "platform_type", "replenishment_category", "week_number")]
+#sunCluster = sun_new[,!names(sun_new) %in% c("ordered_units", "log_order_units", "week_start", "week_end", "release_date")] 
+
+cluster1=sunCluster[kmeansPCA$clust==sunclust[1],]
+c1_uniq=as.data.frame(as.character(unique(cluster1$title)))
+names(c1_uniq) = "cluster1"
+c1_uniq_week=as.character(sort(unique(cluster1$week_number)))
+
+ggplot(data= melt(cluster1), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 10)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster2=sunCluster[kmeansPCA$clust==sunclust[2],]
+c2_uniq=as.data.frame(as.character(unique(cluster2$title)))
+names(c2_uniq) = "cluster2"
+c2_uniq_week=as.character(sort(unique(cluster2$week_number)))
+
+ggplot(data= melt(cluster2), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+   coord_cartesian(ylim = c(0, 10)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster3=sunCluster[kmeansPCA$clust==sunclust[3],]
+c3_uniq=as.data.frame(as.character(unique(cluster3$title)))
+names(c3_uniq) = "cluster3"
+c3_uniq_week=as.character(sort(unique(cluster3$week_number)))
+
+ggplot(data= melt(cluster3), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 10)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster4=sunCluster[kmeansPCA$clust==sunclust[4],]
+c4_uniq=as.data.frame(as.character(unique(cluster4$title)))
+names(c4_uniq) = "cluster4"
+c4_uniq_week=as.character(sort(unique(cluster4$week_number)))
+
+ggplot(data= melt(cluster4), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster5=sunCluster[kmeansPCA$clust==sunclust[5],]
+c5_uniq=as.data.frame(as.character(unique(cluster5$title)))
+names(c5_uniq) = "cluster5"
+c5_uniq_week=as.character(sort(unique(cluster5$week_number)))
+
+ggplot(data= melt(cluster5), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0,5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster6=sunCluster[kmeansPCA$clust==sunclust[6],]
+c6_uniq=as.data.frame(as.character(unique(cluster6$title)))
+names(c6_uniq) = "cluster6"
+c6_uniq_week=as.character(sort(unique(cluster6$week_number)))
+
+ggplot(data= melt(cluster5), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 7.5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+
+library(qpcR)
+product_clusters=qpcR:::cbind.na(c1_uniq, c2_uniq, c3_uniq, c4_uniq)
+product_clusters
+
+#p <- plot_ly(carsDf,x=Comp.1,y=Comp.2,text=rownames(carsDf),
+#             mode="markers",color = cluster_name,marker=list(size=11))
+#p <- layout(p,title="PCA Clusters from Hierachical Clustering of Cars Data",
+#            xaxis=list(title="PC1"),
+#            yaxis=list(title="PC2"))
+(product_clusters$cluster1)
+length(product_clusters$cluster2)
+length(product_clusters$cluster3)
+length(product_clusters$cluster4)
+length(product_clusters$cluster5)
+length(product_clusters$cluster6)
+
+```
+
+```{r}
+c1=unique(cluster1$title)
+c2=unique(cluster2$title)
+c3=unique(cluster3$title)
+c1_not_in_c2 = unique(cluster1$title[!cluster1$title %in% c2])
+c1_not_in_c3 = unique(cluster1$title[!cluster1$title %in% c3])
+
+c2_not_in_c1 = unique(cluster2$title[!cluster2$title %in% c1])
+common = unique(cluster2$title[cluster2$title %in% c1])
+
+(c1_not_in_c2)
+(c2_not_in_c1)
+(c1_not_in_c3)
+
+(common)
+```
+
+CLUSTERING WITHOUT PCA
+```{r}
+set.seed(145)
+fviz_nbclust(sun_new[,num_var1], kmeans, method = "wss")  #2clusters 0r 5
+fviz_nbclust(sun_new[,num_var1], kmeans, method = "silhouette") 
+wss = sum(kmeans(sun_new[,c('log_order_units')], centers=1)$withinss) #find variance in PC1 and PC2
+
+for (i in 2:15) wss[i] = sum(kmeans(sun_new[,c('log_order_units')],
+                                     centers=i)$withinss)
+
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+```
+```{r}
+kClusters = 3
+kmeans_orig = kmeans(sun_new[,num_var1], kClusters)
+ggplot(sun_new, aes(x=average_customer_reviews_int, y=ordered_units)) + 
+    geom_point(aes(fill=factor(kmeans_orig$cluster)),
+               colour='black',
+               pch=21,
+               size=2) +
+    scale_fill_manual(values = c("black","red", 'green', 'blue', "purple", "orange")) +
+    guides(fill=guide_legend(title="Cluster")) +
+    theme_bw()
+```
+
+```{r}
+library(dplyr)
+library(reshape2)
+sort(table(kmeans_orig$clust))
+clust = names(sort(table(kmeans_orig$clust)))
+Cluster = sun_new[,!names(sun_new) %in% c("ordered_units", "log_order_units", "week_start", "week_end", "release_date")] 
+
+cluster1=Cluster[kmeans_orig$clust==clust[1],]
+c1_uniq=as.data.frame(as.character(unique(cluster1$title)))
+names(c1_uniq) = "cluster1"
+c1_uniq_week=as.character(sort(unique(cluster1$week_number)))
+
+ggplot(data= melt(cluster1), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster2=Cluster[kmeans_orig$clust==clust[2],]
+c2_uniq=as.data.frame(as.character(unique(cluster2$title)))
+names(c2_uniq) = "cluster2"
+c2_uniq_week=as.character(sort(unique(cluster2$week_number)))
+
+ggplot(data= melt(cluster2), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster3=Cluster[kmeans_orig$clust==clust[3],]
+c3_uniq=as.data.frame(as.character(unique(cluster3$title)))
+names(c3_uniq) = "cluster3"
+c3_uniq_week=as.character(sort(unique(cluster3$week_number)))
+
+ggplot(data= melt(cluster3), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster4=Cluster[kmeans_orig$clust==clust[4],]
+c4_uniq=as.data.frame(as.character(unique(cluster4$title)))
+names(c4_uniq) = "cluster4"
+c4_uniq_week=as.character(sort(unique(cluster4$week_number)))
+
+ggplot(data= melt(cluster4), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster5=Cluster[kmeans_orig$clust==clust[5],]
+c5_uniq=as.data.frame(as.character(unique(cluster5$title)))
+names(c5_uniq) = "cluster5"
+c5_uniq_week=as.character(sort(unique(cluster5$week_number)))
+
+ggplot(data= melt(cluster5), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 7.5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+par(mfrow=c(2,2))
+
+
+library(qpcR)
+product_clust_kmean=qpcR:::cbind.na(c1_uniq, c2_uniq, c3_uniq) # c4_uniq, c5_uniq)
+product_clust_kmean
+
+library(cluster)
+clusplot(sun_new[,num_var1], kmeans_orig$cluster, color=T, shade=F,labels=0,lines=0, main='k-Means Cluster Analysis')
+
+#table(product_clust_kmean)
+#nrow(product_clust_kmean$cluster2)
+```
+Binning
+```{r}
+breaks = c(0,500,1000,1500,2000, 4000)
+sun_new$category_ordered_rank = findInterval(sun_orig$amazon_category_ordered_units_rank, breaks)
+hist(sun_new$category_ordered_rank)
+
+breaks = seq(1,350,70)
+sun_new$subcategory_ordered_rank = findInterval(sun_new$amazon_subcategory_ordered_units_rank, breaks)
+hist(sun_new$subcategory_ordered_rank)
+
+breaks=seq(1,  35500000, 7100000)
+sun_new$page_view_rank_bin = findInterval(sun_new$page_views_rank, breaks)
+hist(sun_new$page_view_rank_bin)
+
+breaks=seq(1,  20, 5)
+sun_new$unique_visitor_index_bin = findInterval(sun_new$unique_visitors_index, breaks)
+hist(sun_new$unique_visitor_index_bin)
+
+breaks=seq(1,  2200000, 420000)
+sun_new$order_units_bin = findInterval(sun_new$amazon_ordered_units_rank, breaks)
+hist(sun_new$order_units_bin)
+```

@@ -1,0 +1,211 @@
+---
+title: "data cleaning part II"
+author: "Annie George"
+date: "November 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(plyr)
+library(tidyr)
+library(caret)
+library(janitor)
+library(MASS)
+library(fpp2)
+```
+<b>Part I. Cleaning</b>
+Read the merged driver file for sun care products and clean the column names to lower case and underscore eg: week_start
+```{r}
+sun=read_excel("sun_drivers.xlsx",  col_names=TRUE)
+sun=clean_names(sun)
+```
+1. Fill in UNKNOWN category with known category values for the product
+2. Fill in UNKNOWN subcategory with known category values for the product
+3. Fixing title with similar names but differnt caps (IDEA!!! Cluster to see the names have an effect such as ULTRA, SHEER, OIL_FREE, BROAD SPECTRUM)
+```{r}
+#1. Find titles with category UNKNOWN
+#2. Get all unique category for the title (with UNKNOW) to provide a value for UNKNOWN 
+#3. Manipulated 2 entries, 2 more UNKNOWNS remain
+temp=unique(sun[sun$category == "UNKNOWN" & !is.na(sun$category),c("title", "category", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "category", "product_group")])
+sun$category[sun$title=="Neutrogena Sunscreen Ultra Sheer Stick SPF 70, 1.5 Ounce" & sun$category=="UNKNOWN"] = "1900  Mass Skin Care - Pantry"
+sun$category[sun$title=="Neutrogena, Ultra Sheer Sunblock Dry-Touch, SPF 100+, 3 fl oz" & sun$category=="UNKNOWN"] = "0900 GM/HBC"
+
+#1. Find titles with category UNKNOWN
+#2. Get all unique category for the title (with UNKNOW) to provide a value for UNKNOWN 
+#3. Manipulated 2 entries, 2 more UNKNOWNS remain
+temp=unique(sun[sun$subcategory == "UNKNOWN" & !is.na(sun$subcategory),c("title", "subcategory", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "subcategory", "product_group")])
+sun$subcategory[sun$title=="Neutrogena Sunscreen Ultra Sheer Stick SPF 70, 1.5 Ounce" & sun$subcategory=="UNKNOWN"] = "1970  Sun"
+sun$subcategory[sun$title=="Neutrogena, Ultra Sheer Sunblock Dry-Touch, SPF 100+, 3 fl oz" & sun$subcategory=="UNKNOWN"] = "0930 Beauty"
+
+#Fix the title
+temp=unique(sun[,c("title", "category", "subcategory", "product_group")])
+unique(sun[sun$title==temp$title, c("title", "category", "subcategory", "product_group")]) 
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 45, 3 Fl. Oz,"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen, Broad Spectrum Spf 45, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum SPF 70, 0.47 Ounce"] = "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum Spf 70, 0.47 Oz."
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fluid"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry-Touch Sunscreen, Broad Spectrum Spf 100, 3 Fl. O"] = "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum Spf 70, 0.47 Oz."] = "Neutrogena Wet Skin Kids Stick Sunscreen Broad Spectrum SPF 70, 0.47 Oz"
+sun$title[sun$title == "Neutrogena Ultra Sheer Face & Body Stick Sunscreen Broad Spectrum Spf 70, 1"] = "Neutrogena Ultra Sheer Face & Body Stick Sunscreen Broad Spectrum SPF 70, 1"
+sun$title[sun$title == "Neutrogena Age Shield Face Oil-Free Lotion Sunscreen Broad Spectrum Spf 110"] = "Neutrogena Age Shield Face Oil-Free Lotion Sunscreen Broad Spectrum SPF 110"
+sun$title[sun$title == "Neutrogena Wet Skin Kids Sunscreen Spray, Twin Pack, 2 Count"] = "Neutrogena Wet Skin Kids Sunscreen Spray, Twin Pack"
+sun$title[sun$title == "Neutrogena SPF 70 Plus Wet Skin Kids Sunscreen Stick Broad Spectrum, 0.47 O"] = "Neutrogena SPF 70 Plus Wet Skin Kids Suncreen Stick Broad Spectrum, 0.47 Ou"
+sun$title[sun$title == "Neutrogena Ultra Sheer Dry Touch Sunscreen SPF 100, 3 oz., (Packaging May V"] = "Neutrogena Ultra Sheer SPF 100 Dry Touch Sunscreen, 3 ounce"
+sun$title[sun$title ==  "Neutrogena Beach Defense Sunscreen Body Lotion Broad Spectrum Spf 70, 6.7 O"] = "Neutrogena Beach Defense Sunscreen Lotion Broad Spectrum SPF 70, 6.7 Oz" 
+
+sun$title[sun$title ==  "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz"]=  "Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 fl. oz" 
+sun$title[sun$title ==  "Neutrogena Age Shld Ss Spf-110 3 OZ"] =  "NEUTROGENA AGE SHLD SS SPF-110 3 OZ" 
+sun$title[sun$title ==   "Neutrogena Ultra Sheer Drytouch Sunscreen, SPF 45, 3 Ounce Twin pack"]=  "Neutrogena Ultra Sheer Drytouch Sunscreen, SPF 45, 3 Ounce (Pack of 2)" 
+sun$title[sun$title ==    "Neutrogena Ultra Sheer SPF 100 Dry Touch Sunscreen, 3 ounce"]=  "Neutrogena Ultra Sheer SPF 100 Dry Touch Sunscreen, 3 Ounce"   
+sun$title[sun$title ==     "Neutrogena Age Shield Face Oil-Free Lotion Sunscreen Broad Spectrum SPF 110"]=  "Neutrogena Age Shield Face Lotion Sunscreen Broad Spectrum SPF 110, 3.0 fl."  
+
+unique(sun$title)
+```
+
+Add week number 1-52
+```{r}
+library(epitools)
+sun$week_number=as.factor(as.week(sun$week_start, format = "%y-%m-%d", sunday= TRUE)$week)
+```
+
+Converting categorical to factors for modeling
+```{r}
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+```
+
+1. Find the NAs for rank fields and average ordered 
+2. Remove extra NAs
+Fix all those with ranks
+```{r}
+sum(is.na(sun))
+colSums(is.na(sun))
+
+#Remove NA rows for week start
+sun=sun[!is.na(sun$week_start),]
+
+#All average ordered/shipped price with NAs have ordered/shipped amount as 0, hence the NA's will be set as zeros
+sun[is.na(sun$average_ordered_price),c("average_ordered_price", "ordered_amount")]
+sun$average_ordered_price[is.na(sun$average_ordered_price)] = 0 
+
+sun[is.na(sun$average_shipped_price),c("average_shipped_price", "shipped_amount")]
+sun$average_shipped_price[is.na(sun$average_shipped_price)] = 0
+
+
+#Set NAs in cat/subcat ordered sales rank based on ordered amount, If ordered amount is zero, set it as zero
+#Set NAs in cat/subcat ordered units rank based on ordered units, If ordered units is zero, set it as zero
+#Set NAs in cat/subcat shipped sales rank based on shipped amount, If shipped amount is zero, set it as zero
+#Set NAs in cat/subcat shipped units rank based on shipped units, If shipped units is zero, set it as zero
+colSums(is.na(sun))
+sun[is.na(sun$amazon_category_ordered_sales_rank & sun$ordered_amount == 0),c("amazon_category_ordered_sales_rank", "amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "ordered_amount")]
+sun$amazon_category_ordered_sales_rank[is.na(sun$amazon_category_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_subcategory_ordered_sales_rank[is.na(sun$amazon_subcategory_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_ordered_sales_rank[is.na(sun$amazon_ordered_sales_rank) & sun$ordered_amount == 0] = 0
+
+sun$amazon_shipped_sales_rank[is.na(sun$amazon_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_category_shipped_sales_rank[is.na(sun$amazon_category_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_subcategory_shipped_sales_rank[is.na(sun$amazon_subcategory_shipped_sales_rank) & sun$shipped_amount == 0] = 0
+
+sun$amazon_category_ordered_units_rank[is.na(sun$amazon_category_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_subcategory_ordered_units_rank[is.na(sun$amazon_subcategory_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_ordered_units_rank[is.na(sun$amazon_ordered_units_rank) & sun$ordered_units == 0] = 0
+
+sun$amazon_category_shipped_units_rank[is.na(sun$amazon_category_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+sun$amazon_subcategory_shipped_units_rank[is.na(sun$amazon_subcategory_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+sun$amazon_shipped_units_rank[is.na(sun$amazon_shipped_units_rank) & sun$shipped_units == 0] = 0
+
+#Page view ranks with NA and having zero ordered units will be set as zero
+colSums(is.na(sun))
+sun[is.na(sun$page_views_rank),c("amazon_category_ordered_sales_rank", "amazon_category_ordered_sales_rank", "amazon_subcategory_ordered_sales_rank", "ordered_units", "page_views_rank")]
+sun$page_views_rank[is.na(sun$page_views_rank) & sun$ordered_units == 0] = 0
+
+#That still leaves us with 23 rows with field ranks as NA. Hence these will be removed from analysis 
+colSums(is.na(sun))
+sun[is.na(sun$page_views_rank),]
+sun=sun[!is.na(sun$page_views_rank),] 
+
+colSums(is.na(sun))
+sun=sun[!is.na(sun$amazon_ordered_sales_rank),] 
+```
+
+Set a new variable which will say if the product is sold only in prime or online or both
+only prime = pn, only com =com, both =pncom
+```{r}
+sun[is.na(sun$platform1), c("platform1", "platform2")]
+sun$platform_type="NA"
+sun$platform_type[!is.na(sun$platform1) & !is.na(sun$platform2)] = "pncom" 
+sun$platform_type[(is.na(sun$platform1) & sun$platform2 == "com") | (is.na(sun$platform2) & sun$platform1 == "com")] = "com"
+sun$platform_type[(is.na(sun$platform1) & sun$platform2 == "pn") | (is.na(sun$platform2) & sun$platform1 == "pn")] = "pn" 
+sun$platform_type
+```
+
+Tweak box cox lambda order
+```{r}
+sun_ts=read_excel("sun_care_ts.xlsx",  col_names=TRUE)
+names(sun_ts)
+sun_ts=clean_names(sun_ts)
+sun$week_start = as.Date(sun$week_start)
+sun_ts$week_of_week_start = as.Date(sun_ts$week_of_week_start)
+names(sun_ts)
+library(sqldf)
+library(dplyr)
+library(chron)
+library(timeDate)
+library(lubridate)
+holiday=sqldf('select b.national_holiday
+      from sun a
+       join  sun_ts b
+      on a.week_start =b.week_of_week_start ')
+sun=cbind(sun, "holiday"=holiday)
+sun=sun[!sun$week_start == "2017-05-21",]
+
+write.xlsx(sun, "clean_data.xlsx")
+```
+Data exploration
+```{r}
+ggplot(sun, aes(x=shipped_units)) + geom_histogram(fill="blue")
+#outlier for just one product
+sun[sun$shipped_units > 6000,] 
+sun[sun$title=="Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz",]
+
+ggplot(sun[sun$title=="Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz",], aes(y=shipped_units, x=week_start)) +
+  geom_line() + ggtitle("Shipped units for Neutrogena Ultra Sheer Dry-Touch Sunscreen Broad Spectrum SPF 100, 3 Fl. Oz")
+
+
+ggplot(sun, aes(x=shipped_units, y=orders)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_ordered_sales_rank)) + geom_histogram(fill="blue")
+ggplot(sun, aes(x=amazon_ordered_sales_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_category_ordered_sales_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_subcategory_ordered_sales_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_category_ordered_units_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_subcategory_ordered_units_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_subcategory_shipped_units_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=amazon_subcategory_shipped_sales_rank, y=shipped_units)) + geom_line(col="blue")
+ggplot(sun, aes(x=title, y=shipped_units)) + geom_bar(col="blue")
+
+```
+

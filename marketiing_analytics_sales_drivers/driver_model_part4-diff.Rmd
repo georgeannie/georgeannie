@@ -1,0 +1,399 @@
+---
+title: "driver_model_part4_diif"
+author: "Annie George"
+date: "November 24, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(plyr)
+library(tidyr)
+library(caret)
+library(janitor)
+library(MASS)
+library(fpp2)
+library(car)
+```
+
+
+```{r}
+sun=read_excel("clean_data.xlsx",  col_names=TRUE)
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+sun$platform_type = as.factor(sun$platform_type)
+sun$national_holiday = as.factor(sun$national_holiday)
+
+sun=sun[,!names(sun) %in% c("ordered_amount_trend", 
+                            "ordered_amount_year_over_year_trend", 
+                            "orders_trend", "orders_year_over_year_trend", 
+                            "ordered_units_trend", 
+                            "ordered_units_year_over_year_trend", 
+                            "shipped_amount_trend", 
+                            "shipped_amount_year_over_year_trend", 
+                            "shipped_units_trend", 
+                            "shipped_units_year_over_year_trend",  
+                            "unfilled_customer_ordered_units_trend", 
+                            "unfilled_customer_ordered_units_year_over_year_trend", 
+                            "unique_visitors_trend", 
+                            "unique_visitors_year_over_year_trend", 
+                            "conversion_rate_trend", 
+                            "conversion_rate_year_over_year_trend", 
+                            "shipped_cost_of_goods_sold_trend", 
+                            "shipped_cost_of_goods_sold_year_over_year_trend", 
+                            "page_views_year_over_year_trend",  
+                            "page_views_trend",
+                            "conversion_percentile", 
+                            "x1_week_forecast", 
+                            "x4_week_forecast", 
+                            "x12_week_forecast", 
+                            "shipped_cost_of_goods_sold", 
+                            "currency_code",
+                            "platform1",
+                            "platform2",
+                            "transformed_order_units",
+                            "brand")]
+                          
+
+sun=sun[, -c(1:2)]
+```
+
+Get all the numerical variables in the dataset
+```{r}
+sun_new=sun[,!names(sun) %in% c("ordered_units", 
+                                "ordered_amount", "orders", "shipped_amount")]
+
+num_var = which(sapply(sun_new, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+```
+
+Finding correlated variables with the transformed order units
+```{r}
+library(psych)
+library(caret)
+library(GGally)
+library(Hmisc)
+set.seed(222)
+
+ggcorr(sun_new[,num_var])
+cor(as.matrix(sun_new[,num_var]))
+  
+cortest.bartlett(sun_new[,num_var], n=nrow(train))
+
+```
+
+Model 1: Linear Model using the dummy train
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+Remove
+"unfilled_customer_ordered_units",
+"page_views_index"
+page_views_rank
+customer_reviews
+```{r}
+names(train)
+dummy_model_lm = dummyVars( ~ ., 
+                            sun_new[,-c(37, 39)])
+dummy_train_lm = data.frame(predict(dummy_model_lm, sun_new[,-c(37, 39)]))
+
+# Custom Control Parameters
+custom = trainControl(method = "repeatedcv",
+                       number = 5,
+                       repeats = 5,
+                       verboseIter = T)
+
+lm = train(shipped_units ~.      -page_views_index
+           -amazon_ordered_units_rank
+-amazon_subcategory_ordered_units_rank
+-amazon_shipped_units_rank
+-amazon_category_shipped_units_rank
+-amazon_category_ordered_units_rank
+-unsellable_on_hand_units
+-average_ordered_price
+-amazon_subcategory_ordered_sales_rank
+-unsellable_on_hand_cost
+-amazon_subcategory_shipped_units_rank
+-sellable_on_hand_units
+-amazon_shipped_sales_rank
+-amazon_ordered_sales_rank
+-amazon_category_ordered_sales_rank
+-unique_visitors_index
+-average_customer_review
+-sellable_on_hand_cost
+-page_views_rank
+-list_price  
+,
+           dummy_train_lm,
+            method="lm",
+            preProcess = c("center", "scale"),
+            trControl=custom)
+anova(lm$finalModel)
+dwt(residuals(lm))
+summary(lm)
+lm$results
+plot(lm$finalModel)
+plot(varImp(lm), top=20)
+lm$finalModel
+names(sun_new)
+```
+
+Model 2: Lasso Model using the dummy train
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+
+```{r}
+names(train)
+dummy_model_las = dummyVars( ~ . , sun_new[,-c(37, 7)])
+dummy_train_las= data.frame(predict(dummy_model_las, sun_new[,-c(37, 7)]))
+
+lasso = train(shipped_units ~.  -customer_reviews  -page_views_rank 
+              -amazon_category_ordered_units_rank 
+              -amazon_subcategory_ordered_units_rank
+              -unsellable_on_hand_units
+              -sellable_on_hand_cost
+              -amazon_shipped_units_rank                                                               
+              -amazon_category_shipped_units_rank                     
+              - amazon_subcategory_shipped_units_rank
+              -sellable_on_hand_units 
+              -amazon_ordered_sales_rank
+              -average_ordered_price
+              -list_price,  
+               dummy_train_las,
+               method="glmnet",
+               tuneGrid=expand.grid(alpha=1,
+                                    lambda=seq(0.0000001, 1, length=150)),
+              preProcess = c("center", "scale"),
+              trControl=custom)
+coef(lasso$finalModel, s = lasso$bestTune$lambda)
+plot(lasso)
+lasso$results
+
+plot(lasso$finalModel, xvar = 'dev', label=T)
+plot(varImp(lasso, scale=F), top=20)
+dwt(residuals(lasso))
+
+```
+
+Model 3: Elastic net  
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin, category, Results: lambda =0.00001, alpha =1 explains 85%
+                80% variability is explained by 21 variables, hence only 20 top varaibles are chosen
+```{r}
+names(train)
+dummy_model_en = dummyVars( ~ ., sun_new) # [,-c(5)])
+dummy_train_en= data.frame(predict(dummy_model_en, sun_new)) #[,-c(5)]))
+
+#capturing J&J req though these are actually significant hence removing the fields not asked for explains 83% using 12-13 variables
+
+en = train(shipped_units ~ . -unsellable_on_hand_cost -amazon_shipped_sales_rank 
+           -amazon_category_shipped_sales_rank   
+           -amazon_subcategory_ordered_sales_rank 
+           -amazon_shipped_units_rank
+           -amazon_category_shipped_units_rank
+           -amazon_subcategory_shipped_units_rank
+          - amazon_subcategory_ordered_units_rank
+           -unsellable_on_hand_units, 
+               dummy_train_en ,
+               method="glmnet",
+               tuneGrid=expand.grid(alpha=seq(0,1,length=100),
+                                    lambda=seq(0.000001, 1, length=60)),
+               preProcess = c("center", "scale"),
+              trControl=custom)
+
+tail(en$results)
+plot(en$finalModel, xvar = 'dev', label=T)
+plot(varImp(en), top=25)
+dwt(residuals(en))
+coef=coef(en$finalModel, s = en$bestTune$lambda)
+(coef)
+```
+
+Model 4: Stepwise selection  
+1. Create dummy variable for use in model
+2. Apply k-fold cross validation
+3. The model will be reitrated to remove variables that are not significant to get the best model
+4. Anova gives a better perspective of significance for the categorical variables 
+List of variables removed -  title, week date start and end, first 2 columns, release date, platform1/2, upc code, asin,
+Results: 25 variables explains 75%
+                
+```{r}
+names(train)
+dummy_model_fwd =dummyVars( ~ ., sun_new)
+dummy_train_fwd= data.frame(predict(dummy_model_fwd, sun_new))
+
+#capturing J&J req though these are actually significant hence removing the fields not asked for explains 62% using 11 variables
+
+fwd = train(shipped_units ~ .  , 
+               dummy_train_fwd,
+               method="leapForward", 
+                   tuneGrid=expand.grid(nvmax=c(2:50)),
+            preProcess = c("center", "scale"),
+              trControl=custom)
+
+plot(fwd)
+plot(varImp(fwd), top=25)
+dwt(residuals(fwd))
+```
+
+Compare Models 
+ The best model is Elastic net which explains 86% variatiom
+```{r}
+model_list = list(LinearModel=lm, Lasso=lasso, Elasticnet=en, ForwardSelection=fwd)
+res = resamples(model_list)
+summary(res)
+```
+Durbin watson
+```{r}
+library(car)
+dw_list = list(LinearModel=dwt(residuals(lm)), 
+               Lasso=dwt(residuals(lasso)), 
+               Elasticnet=dwt(residuals(en)), 
+               ForwardSelection=dwt(residuals(fwd)))
+dw_list
+```
+
+
+Final Model using the best model
+   alpha    lambda
+      1    0.00001
+The model as before will use 98 variables (including categorical dummy variables) to explain the 87.66% variability
+The list of important variables
+product group
+category
+subcategory
+list price
+average ordered price
+amazon_ordered_sales_rank                     
+amazon_category_ordered_sales_rank            
+amazon_subcategory_ordered_sales_rank         
+customer_reviews                             
+page_views_rank                              
+open_purchase_order_quantity                  
+sellable_on_hand_units                        
+replenishment_category
+week_number
+
+```{r}
+library(glmnet)
+lm$bestTune
+
+saveRDS(en, "final_model_lm.rds")
+fm = readRDS("final_model_lm.rds")
+
+final_x= sun_new
+
+dummy_final= model.matrix( ~ ., final_x[,-c(39, 43)])
+lm = lm(diff_units ~. -sellable_on_hand_cost  
+                        -sellable_on_hand_units
+                        - list_price
+                        -average_shipped_price
+-amazon_ordered_sales_rank
+-amazon_category_ordered_units_rank
+-amazon_shipped_units_rank
+-amazon_subcategory_shipped_units_rank
+-average_customer_review
+-page_views_rank
+-page_views_index
+-unique_visitors_index
+-open_purchase_order_quantity
+-release_date
+-amazon_category_ordered_sales_rank
+-amazon_shipped_sales_rank
+-amazon_category_shipped_sales_rank
+-amazon_subcategory_shipped_sales_rank 
+-unfilled_customer_ordered_units
+-amazon_subcategory_ordered_sales_rank
+-amazon_ordered_units_rank
+-amazon_category_shipped_units_rank, data=sun_new[,-c(39)])
+
+anova(lm)
+plot(residuals(lasso))
+plot(predict(lasso), residuals(lasso)) #no constant variance
+qqplot(predict(lasso),residuals(lasso))
+hist(residuals(lasso),main='Histogram of residuals',xlab='Standardised
+Residuals',ylab='Frequency')
+
+
+final$beta
+plot(varImp(lasso), top=15)
+
+
+```
+#IF en IS THE BEST 
+
+```{r}
+library(glmnet)
+lasso$bestTune
+
+# Save Final Model for Later Use
+saveRDS(lasso, "final_model_lass.rds")
+fm = readRDS("final_model_lass.rds")
+
+final_x= sun_new
+
+dummy_final= model.matrix( ~ ., final_x)
+final=glmnet(x=dummy_final, y=final_x$shipped_units, family = "gaussian", lambda = lasso$bestTune[2], alpha = lasso$bestTune[1])
+
+plot(residuals(lasso))
+plot(predict(lasso), residuals(lasso)) #no constant variance
+qqplot(predict(lasso),residuals(lasso))
+hist(residuals(lasso),main='Histogram of residuals',xlab='Standardised
+Residuals',ylab='Frequency')
+summary(lasso$finalModel$param)
+
+plot(varImp(lasso), top=20)
+(final$lambda)
+
+
+```
+
+```{r}
+
+ggplot(sun, aes(x=sort(week_number), y=diff_units, col=category)) + geom_boxplot() +
+  ylim(c(-15,15)) +
+  geom_hline(yintercept=0,col="black") +
+  ylab("Difference between Ordered Units and Shipment Units") +
+  xlab("week number")
+
+ggplot(sun_new, aes(x=sort(week_number), y=diff_units, col=subcategory)) + geom_boxplot() +
+  ylim(c(-15,15)) +
+  geom_hline(yintercept=0,col="black")
+
+tit_subcat=unique(sun[,c("title", "subcategory", "category")])
+table("subcategory"=tit_subcat$category, "category"=tit_subcat$subcategory) 
+
+
+tit_subcat$title[tit_subcat$subcategory == "8030 Face"]
+tit_subcat$title[tit_subcat$category == "0900 GM/HBC"]
+ 
+unique(sun$title[(as.numeric(sun$week_number) >="12" & as.numeric(sun$week_number) >="16") & sun$subcategory == "8090 Sun"])
+
+ggplot(sun, aes(x=as.factor(platform_type), fill=category)) + geom_bar() +
+  ylim(c(0,1000)) +  #2 products under 8030 face is popular between 30 and 34th week, why?
+  xlab("Platforms") 
+
+ggplot(sun, aes(x=as.factor(platform_type), fill=subcategory)) + geom_bar() +
+  ylim(c(0,1000)) +  #2 products under 8030 face is popular between 30 and 34th week, why?
+  xlab("Platforms") 
+
+```

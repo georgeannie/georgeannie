@@ -1,0 +1,619 @@
+---
+title: "driver_modelling"
+author: "Annie George"
+date: "November 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+library(xlsx)
+library(sqldf)
+library(plyr)
+library(tidyr)
+library(caret)
+library(janitor)
+```
+
+```{r}
+#read monthly shipment/pos
+sun=read_excel("sun_drivers.xlsx",  col_names=TRUE)
+sun=clean_names(sun)
+dates=sun[,c(2,3,8)]
+
+```
+
+```{r}
+sun[is.na(sun)]=0
+
+#convert avg customer review to integer
+sun$average_customer_reviews_int = as.factor(round(sun$average_customer_review))
+sun$title=as.factor(sun$title)
+sun$asin=as.factor(sun$asin)
+sun$upc_code=as.factor(sun$upc_code)
+sun$product_group=as.factor(sun$product_group)
+sun$category=as.factor(sun$category)
+sun$subcategory=as.factor(sun$subcategory)
+sun$replenishment_category=as.factor(sun$replenishment_category)
+sun$platform1 = as.factor(sun$platform1)
+sun$platform2 = as.factor(sun$platform2)
+sun$currency_code = as.factor(sun$currency_code)
+```
+
+```{r}
+#Insights
+ggplot(sun, aes(y=amazon_category_ordered_units_rank, x=category)) + geom_boxplot()
+
+ggplot(sun, aes(y=amazon_category_ordered_units_rank, x=product_group)) + geom_boxplot() #large variance in units ordered in beauty but more consistent in pantry  department
+
+table(sun$category, sun$product_group)
+table(sun$subcategory, sun$product_group)
+table(sun$replenishment_category, sun$product_group)
+#table(sun$title, sun$replenishment_category)
+#table(sun$title, sun$subcategory)
+
+
+```
+```{r}
+ggplot(sun, aes(y=ordered_units, x=category)) + geom_boxplot()  # there is more units ordered when listed under beauty product group
+
+ggplot(sun, aes(y=ordered_units, x=product_group)) + geom_boxplot()
+
+ggplot(sun, aes(y=average_ordered_price, x=product_group)) + geom_boxplot()
+
+ggplot(sun, aes(x=average_ordered_price, y=ordered_units)) + geom_point()
+
+ggplot(sun, aes(y=average_ordered_price, x=replenishment_category)) + geom_boxplot()
+#ggplot(sun, aes(y=unsellable_on_hand_units, x=product_group)) + geom_boxplot()
+ggplot(sun, aes(x=average_shipped_price, y=ordered_units)) + geom_point()
+```
+#Based on the correlation plot, average shipped price has some correlation with orderd units. The other fields whether dependent or not on ordered units is not relevant to the business problem.
+```{r}
+library(corrplot)
+ship=names(sun[,(grep("ship", names(sun)))])
+cor_ship=cor(sun$ordered_units, sun[,ship])
+corrplot(cor_ship, tl.col="black", tl.pos = "lt")
+ship1=cbind(sun[,ship[1]])
+```
+```{r}
+sun_new=sun
+sun_new=sun[,!names(sun) %in% c(ship)]
+sun_new = cbind(sun_new, ship1)
+```
+
+#analyze all ranks in the dataset
+Since these are ranks they need to be anlayzed more and hence only the ranks related to orders will be considered along with page view rank
+```{r}
+rank=names(sun[,(grep("rank", names(sun)))])
+cor_rank=cor(sun$ordered_units, sun[,rank])
+corrplot(cor_rank, tl.col="black", tl.pos = "lt")
+rank1=sun[,rank[c(4, 5, 6, 13)]]
+sun_new=sun_new[,!names(sun_new) %in% c(rank)]
+sun_new = cbind(sun_new, rank1)
+```
+
+#Analyze all trends in the dataset
+orders_year_over_year_trend
+```{r}
+trend=names(sun[,(grep("trend", names(sun)))])
+cor_trend=cor(sun$ordered_units, sun[,trend])
+corrplot(cor_trend, tl.col="black", tl.pos = "lt")
+sun_new=sun_new[,!names(sun_new) %in% c(trend)]
+```
+
+#Analyse all indexes in the dataset
+page view and unique view are highly correlated with ordered units and henec will be used for analysis 
+```{r}
+index=names(sun[,(grep("index", names(sun)))])
+cor_index=cor(sun$ordered_units, sun[,index])
+corrplot(cor_index, tl.col="black", tl.pos = "lt")
+
+```
+Assuming all sellable and unsellable units are required for analysis
+```{r}
+sellable=names(sun[,(grep("sellable", names(sun)))])
+cor_sellable=cor(sun$ordered_units, sun[,sellable])
+corrplot(cor_sellable, tl.col="black", tl.pos = "lt")
+sellable1=sun[,sellable[c(1:2)]]
+sun_new=sun_new[,!names(sun_new) %in% c(sellable)]
+sun_new = cbind(sun_new, sellable1)
+```
+Analyze conversion rates
+conversion not required
+```{r}
+conversion=names(sun[,(grep("conversion", names(sun)))])
+cor_conversion=cor(sun$ordered_units, sun[,conversion])
+corrplot(cor_conversion, tl.col="black", tl.pos = "lt")
+sun_new=sun_new[,!names(sun_new) %in% c(conversion)]
+
+```
+
+
+Remove forecast for further analysis
+```{r}
+forecast=names(sun[,(grep("forecast", names(sun)))])
+sun_new=sun_new[,!names(sun_new) %in% c(forecast)]
+```
+
+```{r}
+library(epitools)
+sun_new$week_number=as.factor(as.week(sun_new$week_start, format = "%y-%m-%d", sunday= TRUE)$week)
+write.xlsx(sun_new, "sales_drivers_fields.xlsx")
+str(sun_new)
+```
+
+#check number of numerical variables and their correlation with ordered units
+```{r}
+num_var = which(sapply(sun_new, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+cat('There are', length(num_var), 'numeric variables')
+num_var
+
+cor_numVar = cor(sun_new[, num_var], use="pairwise.complete.obs") #correlations of all numeric variables
+
+#sort on decreasing correlations with ordered)units
+cor_sorted = as.matrix(sort(cor_numVar[,'ordered_units'], decreasing = TRUE))
+#select only high corelations
+CorHigh = names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar_high = cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar_high, tl.col="black", tl.pos = "lt")
+
+CorLow = names(which(apply(cor_sorted, 1, function(x) abs(x)<=0.5)))
+cor_numVar_low = cor_numVar[CorLow, CorLow]
+
+corrplot(cor_numVar_low, tl.col="black", tl.pos = "lt")
+
+#to find variable distribution
+#library(reshape2)
+# ggplot(data= melt(sun_new[,num_var[c(1:6)]]), aes(x=variable, y=value)) +
+#    stat_boxplot(geom ='errorbar') +
+#    geom_boxplot(aes(fill=variable))
+```
+
+```{r}
+
+cat('There are', length(unique(sun_new$page_views_rank)), 'unique page view ranks. ')
+cat('There are', length(unique(sun_new$amazon_category_ordered_units_rank)), 'unique amazon category ordered units rank. ')
+cat('There are', length(unique(sun_new$amazon_subcategory_ordered_units_rank)), 'unique amazon subcategory ordered units rank. ')
+
+cat_var = which(sapply(sun_new, is.factor)) #index vector numeric variables
+cat_var= names(cat_var) #saving names vector for use later on
+cat('There are', length(cat_var), 'categorical variables. ')
+cat(' ')
+
+cat('There are', length(unique(sun_new$asin)), 'unique asin. ')
+cat('There are', length(unique(sun_new$upc_code)), 'unique upc code. ')
+cat('There are', length(unique(sun_new$title)), 'unique sun products. ')
+```
+Can we define the sales of each products.
+There are clusters that are standing out as per the asin and customer reviews
+```{r}
+#preserve ordered units and remove unfilled customer ordered units and sellable on hand cost
+features=num_var[-c(5)]
+
+#scale all the numerical features
+sun_new[,features]=scale(sun_new[features])
+
+sunPCA = prcomp(sun_new[,features], scale = TRUE)
+plot(sunPCA, type="l") #variance at second component
+summary(sunPCA)
+sunPCA$rotation
+
+vars_transformed = apply(sunPCA$x, 2, var)
+vars_transformed
+vars_transformed/sum(vars_transformed)  #PC1 explains 42% variation and PC2 explains 17% together explaining 59% PC3 explains 10% adding 69%
+
+# First three principal components explains a lot
+comp = data.frame(sunPCA$x[,1:3])
+# Plot
+plot(comp, pch=16, col=rgb(0,0,0.5))
+
+sunpredictPCA = predict(sunPCA, sun_new[,features])
+sunPCAcols <- cbind(sun_new, as.data.frame(sunpredictPCA)[,1:3])
+
+
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=upc_code),
+               colour='black',
+               pch=21,
+               size=2) +
+    theme_bw()
+
+```
+
+```{r}
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=average_customer_reviews_int),
+               colour='black',
+               pch=21,
+               size=2) +
+    theme_bw()
+```
+
+
+```{r}
+set.seed(145)
+#find number of appropriate clusters for the principle component obtained
+#wss = (nrow(sunPCAcols)-1)*sum(apply(sunPCAcols[,c('PC1', 'PC2', 'PC3')],2,var)) #find variance in PC1 and PC2
+
+#for (i in 2:15) wss[i] = sum(kmeans(sunPCAcols[,c('PC1', 'PC2', 'PC3')],
+#                                     centers=i)$withinss)
+
+#plot(1:15, wss, type="b", xlab="Number of Clusters",
+#     ylab="Within groups sum of squares")
+library(factoextra)
+#fviz_nbclust(sunPCAcols[,c('PC1', 'PC2')], kmeans, method = "wss")
+
+fviz_nbclust(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kmeans, method = "wss")  #2clusters 0r 5
+fviz_nbclust(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kmeans, method = "silhouette") #the second method points to 5
+```
+
+```{r}
+kClusters = 5
+kmeansPCA <- kmeans(sunPCAcols[,c('PC1', 'PC2', 'PC3')], kClusters, nstart=25, iter.max = 1000)
+ggplot(sunPCAcols, aes(x=PC1, y=PC2)) + 
+    geom_point(aes(fill=factor(kmeansPCA$cluster)),
+               colour='black',
+               pch=21,
+               size=2) +
+    scale_fill_manual(values = c("black","red", 'green', 'blue', "purple", "orange")) +
+    guides(fill=guide_legend(title="Cluster")) +
+    theme_bw()
+kmeansPCA$tot.withinss
+
+```
+
+
+```{r}
+library(dplyr)
+library(reshape2)
+sort(table(kmeansPCA$clust))
+sunclust = names(sort(table(kmeansPCA$clust)))
+#sunCluster = sun_new %>% select(asin:title, product_group:subcategory, list_price:orders, unfilled_customer_ordered_units: sellable_on_hand_units)
+sunCluster = sun_new[,!names(sun_new) %in% c("ordered_units")] #%>% select(asin:title, list_price:orders, unfilled_customer_ordered_units:week_number)
+
+cluster1=sunCluster[kmeansPCA$clust==sunclust[1],]
+c1_uniq=as.data.frame(as.character(unique(cluster1$title)))
+names(c1_uniq) = "cluster1"
+c1_uniq_week=as.character(sort(unique(cluster1$week_number)))
+
+ggplot(data= melt(cluster1), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster2=sunCluster[kmeansPCA$clust==sunclust[2],]
+c2_uniq=as.data.frame(as.character(unique(cluster2$title)))
+names(c2_uniq) = "cluster2"
+c2_uniq_week=as.character(sort(unique(cluster2$week_number)))
+
+ggplot(data= melt(cluster2), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster3=sunCluster[kmeansPCA$clust==sunclust[3],]
+c3_uniq=as.data.frame(as.character(unique(cluster3$title)))
+names(c3_uniq) = "cluster3"
+c3_uniq_week=as.character(sort(unique(cluster3$week_number)))
+
+ggplot(data= melt(cluster3), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster4=sunCluster[kmeansPCA$clust==sunclust[4],]
+c4_uniq=as.data.frame(as.character(unique(cluster4$title)))
+names(c4_uniq) = "cluster4"
+c4_uniq_week=as.character(sort(unique(cluster4$week_number)))
+
+ggplot(data= melt(cluster4), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster5=sunCluster[kmeansPCA$clust==sunclust[5],]
+c5_uniq=as.data.frame(as.character(unique(cluster5$title)))
+names(c5_uniq) = "cluster5"
+c5_uniq_week=as.character(sort(unique(cluster5$week_number)))
+
+ggplot(data= melt(cluster5), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 7.5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+
+library(qpcR)
+product_clusters=qpcR:::cbind.na(c1_uniq, c2_uniq, c3_uniq, c4_uniq, c5_uniq)
+product_clusters
+
+library(cluster)
+clusplot(sun_new[,num_var], kmeansPCA$cluster, color=T, shade=F,labels=0,lines=0, main='k-Means Cluster Analysis')
+
+```
+CLUSTERING WITHOUT PCA
+```{r}
+set.seed(145)
+fviz_nbclust(sun_new[,num_var], kmeans, method = "wss")  #2clusters 0r 5
+fviz_nbclust(sun_new[,num_var], kmeans, method = "silhouette") 
+#find number of appropriate clusters for the entire dataset wit only the ordered units
+#wss = (nrow(sunPCAcols)-1)*sum(apply(sunPCAcols[,c('PC1', 'PC2')],2,var)) #find variance in PC1 and PC2
+wss = sum(kmeans(sun_new[,c('ordered_units')], centers=1)$withinss) #find variance in PC1 and PC2
+#wss = kmeans(sun_new[], centers=1)$tot.withinss
+
+for (i in 2:15) wss[i] = sum(kmeans(sun_new[,c('ordered_units')],
+                                     centers=i)$withinss)
+
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+```
+```{r}
+kClusters = 5
+kmeans_orig = kmeans(sun_new[,num_var], kClusters)
+ggplot(sun_new, aes(x=average_customer_reviews_int, y=ordered_units)) + 
+    geom_point(aes(fill=factor(kmeans_orig$cluster)),
+               colour='black',
+               pch=21,
+               size=2) +
+    scale_fill_manual(values = c("black","red", 'green', 'blue', "purple", "orange")) +
+    guides(fill=guide_legend(title="Cluster")) +
+    theme_bw()
+```
+
+```{r}
+library(dplyr)
+library(reshape2)
+sort(table(kmeans_orig$clust))
+clust = names(sort(table(kmeans_orig$clust)))
+Cluster = sun_new[,!names(sun_new) %in% c("ordered_units")] #%>% select(asin:title, list_price:orders, unfilled_customer_ordered_units:week_number)
+
+cluster1=Cluster[kmeans_orig$clust==clust[1],]
+c1_uniq=as.data.frame(as.character(unique(cluster1$title)))
+names(c1_uniq) = "cluster1"
+c1_uniq_week=as.character(sort(unique(cluster1$week_number)))
+
+ggplot(data= melt(cluster1), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster2=Cluster[kmeans_orig$clust==clust[2],]
+c2_uniq=as.data.frame(as.character(unique(cluster2$title)))
+names(c2_uniq) = "cluster2"
+c2_uniq_week=as.character(sort(unique(cluster2$week_number)))
+
+ggplot(data= melt(cluster2), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster3=Cluster[kmeans_orig$clust==clust[3],]
+c3_uniq=as.data.frame(as.character(unique(cluster3$title)))
+names(c3_uniq) = "cluster3"
+c3_uniq_week=as.character(sort(unique(cluster3$week_number)))
+
+ggplot(data= melt(cluster3), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster4=Cluster[kmeans_orig$clust==clust[4],]
+c4_uniq=as.data.frame(as.character(unique(cluster4$title)))
+names(c4_uniq) = "cluster4"
+c4_uniq_week=as.character(sort(unique(cluster4$week_number)))
+
+ggplot(data= melt(cluster4), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 12)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+cluster5=Cluster[kmeans_orig$clust==clust[5],]
+c5_uniq=as.data.frame(as.character(unique(cluster5$title)))
+names(c5_uniq) = "cluster5"
+c5_uniq_week=as.character(sort(unique(cluster5$week_number)))
+
+ggplot(data= melt(cluster5), aes(x=variable, y=value)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot(aes(fill=variable)) +
+    coord_cartesian(ylim = c(0, 7.5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") 
+
+
+library(qpcR)
+product_clust_kmean=qpcR:::cbind.na(c1_uniq, c2_uniq, c3_uniq, c4_uniq, c5_uniq)
+product_clust_kmean
+
+library(cluster)
+clusplot(sun_new[,num_var], kmeans_orig$cluster, color=T, shade=F,labels=0,lines=0, main='k-Means Cluster Analysis')
+
+```
+
+sun=sun[, !names(sun) %in% c(new_CorHigh)]
+training=sun[sun$week_start < '2017-01-01', ]
+testing=sun[sun$week_end >= '2017-01-01', ]
+trainY=(training$ordered_units)
+testY=(testing$ordered_units)
+trainX=(training[,!(names(training) %in% c("ordered_units"))])
+testX=(testing[,!(names(testing) %in% c("ordered_units"))])
+
+library(randomForest)
+set.seed(2018)
+quick_RF <- randomForest(x=sun[,!(names(sun) %in% c("ordered_units"))],
+                         y=sun$ordered_units, ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+
+ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+
+
+
+#Normalizing the data
+
+trainX <- preProcess(trainX, method=c("center", "scale"))
+print(trainX)
+
+#DFdummies <- as.data.frame(model.matrix(~., cat_var))
+#dim(DFdummies)
+
+
+set.seed(27042018)
+my_control <-trainControl(method="cv", number=5)
+lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
+X=as.matrix(trainX)
+lasso_mod <- train(x=X, y=trainY, method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
+lasso_mod$bestTune
+
+
+skewness(sun$ordered_units)
+qqnorm(sun$ordered_units)
+sun$ordered_units <- log(sun$ordered_units) #default is the natural logarithm, "+1" is not necessary as there are no 0's
+skew(all$SalePrice)
+
+
+```
+```{r}
+#clustering
+num_var = which(sapply(sun, is.numeric)) #index vector numeric variables
+num_var= names(num_var) #saving names vector for use later on
+cat('There are', length(num_var), 'numeric variables')
+
+medians=apply(sun[,num_var],2, median)
+mads=apply(sun[,num_var], 2, mad)
+num_var=scale(sun[,num_var], center=medians, scale=mads)
+sun=cbind(dates, num_var, cat_var)
+sun.dist=dist(sun)
+sun.hclust=hclust(sun.dist)
+
+plot(sun.hclust, labels=sun$title, main="default hclust")
+groups.3=cutree(sun.hclust,3)
+table(groups.3)
+```
+
+Variables removed due to high correlation with ordered units
+-shipped cost of goods sold
+-orderd amount
+-shipped amount
+-shipped units
+- 1 week forecast
+- 4 week forecast
+- 12 week forecast
+- orders trend
+- shipped amount trend
+- shipped cog sold trend
+- sellable on hand cost
+- unsellable on hand cost
+
+```{r}
+library(corrplot)
+
+num_var=sun[,c(12:17, 21:26, 30:32, 36:38, 42:45, 47, 49:50, 52:64, 66:68)]
+num_var[is.na(num_var)] = 0
+
+cor_var=cor(num_var)
+findcorrelations=names(num_var[c(findCorrelation(cor_var, cutoff = 0.8))])
+
+plot.new()
+corrplot(cor(num_var[,c(findcorrelations)]), method="circle", type="upper", tl.cex = .8)
+
+
+num_var=num_var[,-c(31:33, 39,13, 4, 16, 8, 41, 14, 35, 37)]
+cor_var=cor(num_var)
+findcorrelations1=names(num_var[c(findCorrelation(cor_var, cutoff = 0.8))])
+
+plot.new()
+corrplot(cor(num_var[,c(findcorrelations1)]), method="circle", type="upper", tl.cex = .8)
+```
+
+Normality test of ordered units
+```{r}
+hist(log(num_var$ordered_units), breaks = 20)
+shapiro.test(num_var$ordered_units)
+
+```
+
+```{r}
+library(fastDummies)
+cat_var=sun[,c(4:7, 9:11, 18:20, 27:29, 33:35, 39:41, 45:48, 51, 65, 69:71)]
+cat_var[,c(1:7, 25:27)] = lapply(cat_var[,c(1:7, 25:27)], factor)
+#cat_var[,c(1:7, 25:27)] = lapply(cat_var[,c(1:7, 25:27)], as.numeric)
+#cat_var[,c(1:7, 25:27)] = lapply(cat_var[,c(1:7, 25:27)], factor)
+cat_var[,c(8:24)] = lapply(cat_var[,c(8:24)], factor)
+
+#dummy=dummy_cols(cat_var[,c(1:7, 25:27)])
+```
+
+```{r}
+#sunny=cbind(dates, num_var, cat_var[,c(8:24)], dummy[,-c(1:10)])
+sunny=cbind(dates, num_var, cat_var)
+
+nzv <- nearZeroVar(sun, saveMetrics= TRUE)
+nzv[nzv$nzv,]
+nzv = nearZeroVar(sunny)
+sunny = sunny[ , !names(sunny) %in% c("Brand", "Currency Code", "platform2")]
+
+training=sunny[sunny$week_start < '2017-01-01', ]
+testing=sunny[sunny$week_end >= '2017-01-01', ]
+trainY=as.data.frame(training$ordered_units)
+testY=as.data.frame(testing$ordered_units)
+trainX=as.data.frame(training[,!(names(training) %in% c("ordered_units"))])
+testX=as.data.frame(testing[,!(names(testing) %in% c("ordered_units"))])
+```
+
+```{r}
+library(glmnet)
+library(Matrix)
+
+lambda=seq(0,0.1,0.001)
+
+model_string = paste("ordered_units ~ .", training )
+X=model.matrix(model_string)
+
+lassoFit =  glmnet(x=X , y=training[, 11], 
+                       alpha =1, standardize=TRUE
+                  )
+
+lassoFit =  glmnet(ordered_units ~ ., data=training, alpha = 1, family = "gaussian")
+library(lars)
+lars(as.matrix(training[???11] ) , training [, 11])
+
+
+my_control <-trainControl(method="cv", number=5)
+lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
+
+lasso_mod <- train(x=trainX, y=trainY, method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
+```
+
+
+#read asin keys
+asin=read_excel("Sun_products.xlsx", sheet="ASIN KEY", col_names=TRUE)
+names(asin)
+
+#Brand and #Conversion currency =USD
+nzv <- nearZeroVar(sun, saveMetrics= TRUE)
+nzv[nzv$nzv,]
+nzv <- nearZeroVar(sun)
+sun <- sun[ , !names(sun) %in% c("Brand", "Currency Code", "platform2")]
+names(sun)
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+
+```
+
+

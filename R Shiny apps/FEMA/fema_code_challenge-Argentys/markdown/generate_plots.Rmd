@@ -1,0 +1,290 @@
+---
+title:  <center>FEMA Mock and Sim Data Plots</center>
+author: <center>Team</center>
+date:   <center>`r Sys.Date()`</center>
+output:
+  html_document: 
+    theme: united
+    highlight: tango
+    fig_height: 7
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = "~/2022 - FEMA")
+```
+
+```{r packages, include=FALSE}
+library(MASS)
+library(plotly)
+library(ggplot2)
+library(tidyverse)
+library(data.table)
+library(testthat)
+```
+
+# Mock Data EDA
+```{r mockData-load}
+# Read in mock data file
+fema <- read.csv(file = "../Rshiny_FEMA/data/Attachment 6 mock_data.csv", header = T)
+
+# Truncate deployments that end in 2022
+fema <- fema %>% 
+  mutate(deployment_end_time = ifelse(deployment_end_time > "2022-01-01",
+                                      as.character("2021-12-31T23:59:59Z"),
+                                      deployment_end_time))
+
+# Convert time features
+fema$request_received_time <- as.POSIXct(fema$request_received_time,
+                                       format="%Y-%m-%dT%H:%M:%S")
+fema$deployment_start_time <- as.POSIXct(fema$deployment_start_time,
+                                       format="%Y-%m-%dT%H:%M:%S")
+fema$deployment_end_time   <- as.POSIXct(fema$deployment_end_time,
+                                       format="%Y-%m-%dT%H:%M:%S")
+```
+
+```{r features-generate}
+# Request interval time - all requests (request_time(n+1) - request_time(n))
+fema <- fema %>%
+  arrange(request_received_time) %>%
+  mutate(interval_time = difftime(request_received_time,
+                                  lag(request_received_time), units='days'))
+
+# Request interval time - by responder
+fema <- fema %>%
+  arrange(responder_id, request_received_time) %>%
+  group_by(responder_id) %>%
+  mutate(int_time_resp = difftime(request_received_time,
+                                  lag(request_received_time), units='days'))
+
+# Fulfillment time (start_time - request_time)
+fema$fulfill_time <- difftime(fema$deployment_start_time,
+                              fema$request_received_time, units='days')
+
+# Execution time (end_time - start_time)
+fema$execution_time <- difftime(fema$deployment_end_time,
+                                fema$deployment_start_time, units='days')
+
+# Bench time - by responder (start_time(n+1) - end_time(n))
+fema <- fema %>%
+  arrange(responder_id, request_received_time) %>%
+  group_by(responder_id) %>%
+  mutate(bench_time_resp = difftime(deployment_start_time,
+                                    lag(deployment_end_time), units='days'))
+
+# Utilization rate by responder
+fema <- fema %>%
+  group_by(responder_id) %>%
+  mutate(util_rate_resp = sum(as.numeric(execution_time)*100)/365)
+
+# Bench rate by responder
+fema <- fema %>%
+  group_by(responder_id) %>%
+  mutate(bench_rate_resp = sum(as.numeric(bench_time_resp)*100, na.rm=T)/365)
+```
+
+## Calculate summary statistics
+```{r summary-stats}
+# Summary statistics
+cat("Summary Stats",
+"\n","Team size:", length(unique(fema$responder_id)),
+"\n","Total deployments:", nrow(fema),
+"\n","Total deployment days:", max(fema$deployment_end_time)-min(fema$request_received_time),
+"\n","Avg time to fulfill request:", mean(fema$fulfill_time),"days",
+"\n","Avg time to execute request:", mean(fema$execution_time),"days",
+"\n","Avg resp utilization rate:", (sum(as.numeric(fema$execution_time)*100)/365)/30, "percent",
+"\n","Avg resp bench rate:", (sum(as.numeric(fema$bench_time_resp)*100,na.rm=T)/365)/30, "percent",
+"\n","Avg employment rate:",
+         sum(as.numeric(fema$execution_time)*100)/
+           (sum(as.numeric(fema$execution_time))+
+              sum(as.numeric(fema$bench_time_resp), na.rm = T)), "percent")
+```
+
+# Mock Data Plots
+## Execution time by responder
+```{r box-exec-time, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 1</b> Execution time by responder"}
+boxplot(fema$execution_time ~ fema$responder_id,
+        main="Responder Task Execution Times",
+        ylab="Days", 
+        xlab="Responder ID")
+```
+
+## Bench time by responder
+```{r box-idle-time, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 2</b> Bench time by responder"}
+boxplot(fema$bench_time_resp ~ fema$responder_id, 
+        main="Responder Bench Time", 
+        ylab="Days", 
+        xlab="Responder ID")
+```
+
+## Utilization and bench rates by responder
+```{r bar-util-bench, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 3</b> Utilization and bench rates by responder"}
+ggplot(data=fema, aes(x=responder_id)) +
+  geom_bar(aes(y=util_rate_resp), stat="identity", position ="identity", alpha=.3,
+           fill='lightblue', color='lightblue4') +
+  geom_bar(aes(y=bench_rate_resp), stat="identity", position="identity", alpha=.8,
+           fill='pink', color='red') +
+  ggtitle("Utilization and Bench Rates by Responder") +
+  labs(y="Rate", x="Responder ID")
+```
+
+## Time series utilization
+```{r gantt-util-bench, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 4</b> Time series utilization by responder"}
+ggplot(fema, aes(x=deployment_start_time, xend=deployment_end_time,
+               y=responder_id, yend=responder_id)) +
+  theme_bw() + 
+  geom_segment(size=2) + 
+  labs(title='Execution and Bench Times', x='Date', y='Responder ID')
+```
+
+## Interval time distribution
+```{r hist-gap-time, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 5a</b> Distribution of request interval times"}
+ggplot(fema, aes(x = as.numeric(fema$interval_time))) + 
+  geom_histogram(colour = 4,
+                 fill = "white",
+                 lwd = 0.75,
+                 linetype = 1,
+                 bins = 20,
+                 position = "identity") +
+  ggtitle("Interval Time Between Requests") +
+  labs(y = "Frequency", x = "Days")
+```
+
+## Interval time by date
+```{r gap-by-date, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 5b</b> Request interval times by date"}
+ggplot(fema, aes(x=request_received_time, y=as.numeric(interval_time))) +
+  geom_line(size=0.7, colour = 4) + 
+  ggtitle("Time Between Requests by Date") +
+  labs(y="Days", x="Request Received Date")
+```
+
+## Fulfillment time distribution
+```{r hist-fulfill-time, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 6a</b> Distribution of request fulfillment time"}
+ggplot(fema, aes(x = as.numeric(fema$fulfill_time))) + 
+  geom_histogram(colour = 4,
+                 fill = "white",
+                 lwd = 0.75,
+                 linetype = 1,
+                 bins = 20,
+                 position = "identity") +
+  ggtitle("Time to Fulfill Request") +
+  labs(y = "Frequency", x = "Days")
+```
+
+## Fulfillment time by date
+```{r fulfill-by-date, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 6b</b> Request fulfillments times by date"}
+ggplot(fema, aes(x=request_received_time, y=as.numeric(fulfill_time))) +
+  geom_line(size = 0.7, colour = 4) + 
+  ggtitle("Time to Fulfill Request by Date") +
+  labs(y="Days", x="Request Received Date")
+```
+
+## Interval by execution time
+```{r scatter-gap-exec, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 7</b> Scatter plot of request interval time by execution time"}
+ggplot(fema, aes(as.numeric(fema$interval_time), as.numeric(fema$execution_time))) +
+  geom_point() +
+  ggtitle("Interval Time by Execution Time") +
+  labs(y = "Execution Time (Days)", x = "Interval Time (Days)")
+```
+
+# Simulation Data
+```{r load-functions}
+source('./fema_code_challenge/simulation/deployment_simulation.r')
+```
+
+## Test simulation 1
+```{r test-sim-1}
+test_that("deployments are properly generated", {
+
+  deployments <- generate_deployments(1)
+  
+  # for default input and 1 year of simulation we expect at least one deployment
+  expect_gt(deployments$depl_num, 0)
+  
+  # we expect the length of arrival times array to equal the number of deployments
+  expect_equal(length(deployments$request_received_time), deployments$depl_num)
+  
+})
+
+test_that("deployments are properly processed", {
+  
+  deployments <- generate_deployments(5)
+  processed <- process_deployments(responder_num = 30,deployments)
+
+  # we expect for 5 years of simulations that each responder executes at least one dep
+  expect_equal(length(unique(processed$responder_id)), 30)
+  
+})
+```
+
+## Test simulation 2
+```{r test-sim-2}
+# Generate one year of deployments
+mean_ff_time <- list()
+mean_ex_time <- list()
+
+for (i in 1:100){
+  sim_deps <- generate_deployments(1)
+  sim_proc <- process_deployments(30,sim_deps)
+  
+  mean_ff_time <- c(mean_ff_time, mean(sim_proc$deployment_delay)/24)
+  mean_ex_time <- c(mean_ex_time, mean(sim_proc$deployment_length)/24)
+}
+
+# Mean time to fulfill in mock data is 3.8 days, and mean execution time is 46 days
+cat("\n",
+    "Simulation mean time to fulfill:",mean(unlist(mean_ff_time)), 
+    "\n",
+    "Simulation mean execution time:", mean(unlist(mean_ex_time)))
+```
+
+## Generate simulation stats
+```{r generate-sim-data}
+# Set x number of years worth of deployments (1)
+deployments <- generate_deployments(1)
+
+# Set range of team sizes (30:49)
+proc_list <- list()
+
+for (i in 30:49){
+  sim <- process_deployments(i,deployments)
+  sim$Team_Size <- i
+  sim <- sim %>%
+    arrange(responder_id, request_received_time) %>%
+    group_by(responder_id) %>%
+    mutate(idle_time = deployment_start - lag(deployment_end))
+  proc_list[[i]] <- sim
+}
+
+# Combine data files for each team size and generate summary stats
+sim_data = do.call(rbind, proc_list)
+
+summary <- sim_data %>%
+  group_by(Team_Size) %>%
+  summarize(Total_Exec = sum(deployment_length)/24,
+            Total_Fulfill = sum(deployment_delay)/24,
+            Total_Idle = sum(idle_time, na.rm = T)/24) %>%
+  mutate(Employment = Total_Exec/(Total_Exec+Total_Idle))
+
+summary
+```
+
+# Simulation Data Plots
+## Total fulfill time by team size
+```{r fulfill-by-responders2, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 8</b> Time to fulfill request by team size"}
+plot(x=summary$Team_Size, y=summary$Total_Fulfill,
+     main = "Time to Fulfill Request by Team Size",
+     xlab = "Team Size",
+     ylab = "Days")
+```
+
+## Utilization rate by team size
+```{r employ-by-responders, fig.align="center", fig.width=5, fig.height=5, fig.cap="<b>Figure 9</b> Employment rate of team members by team size"}
+plot(x=summary$Team_Size, y=summary$Employment,
+     main = "Team Member Utilization Rate (Efficiency)",
+     xlab = "Team Size",
+     ylab = "Employment Rate")
+```

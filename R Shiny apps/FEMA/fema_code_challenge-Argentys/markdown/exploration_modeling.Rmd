@@ -1,0 +1,246 @@
+---
+title: "FEMA Code Challenge. Data Exploration and Modeling"
+author: "Nikolai Shaposhnikov"
+date: "2022-08-18"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE, message = FALSE)
+```
+
+```{r}
+options(warn=-1)
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggalt)
+```
+## Data Exploration
+
+Load original datasets:
+
+```{r}
+df <- read_csv('../Rshiny_FEMA/data/Attachment 6 mock_data.csv')
+summary(df)
+```
+
+Below calculate some helpful variables, deployment execution time as a time passed from deployment_start_time to the deployment_end_time, deployment fulfillment time as:
+
+```{r}
+#deployment execution time
+df$exec_time <- eval(parse(text="deployment_end_time - deployment_start_time"), df)
+
+#depolyment fulfillment time
+df$fulfillment_time <- eval(parse(text="deployment_start_time - request_received_time"), df)
+
+#time passed since the previous deployment received time
+df$wait_time <- lead(df$request_received_time) - df$request_received_time
+
+```
+
+# Plot of deployments timeline
+
+```{r}
+    fig <- ggplot(df, 
+         aes(
+           x=deployment_start_time, 
+           xend=deployment_end_time, 
+           y=responder_id, group=responder_id),xlab="Time, hrs") + 
+    geom_dumbbell(color="#066DA6", 
+                  size=1,
+                  size_x = 0.0,
+                  size_xend = 0.0) + 
+    #scale_x_continuous(label=deployment_delay) + 
+    labs(x='Time, Hrs', 
+         y='Responder ID', 
+         title="Deployments Timeline", 
+         subtitle="", 
+         caption="") +
+    theme(plot.title = element_text(hjust=0.5, face="bold"),
+          plot.background=element_blank(),
+          panel.background=element_blank(),
+          panel.grid.minor=element_blank(),
+          panel.grid.major.y=element_blank(),
+          panel.grid.major.x=element_line(),
+          axis.ticks=element_blank(),
+          legend.position="top",
+          panel.border=element_blank())
+
+    
+    fig
+```
+
+# Crunch and routine operations episodes
+
+```{r}
+num_of_deployments = length(df$responder_id)
+num_of_responders = length(unique(df$responder_id))
+
+num_of_depl_received <- integer(num_of_deployments)
+num_of_depl_started <- integer(num_of_deployments)
+num_of_depl_ended <- integer(num_of_deployments)
+
+for (i in (1:num_of_deployments)){
+  t = df$request_received_time[i]
+  num_of_depl_received[i] <- sum(as.numeric(df$request_received_time < t))
+  num_of_depl_started[i] <- sum(as.numeric(df$deployment_start_time < t))
+  num_of_depl_ended[i] <- sum(as.numeric(df$deployment_end_time < t))
+}
+
+depl_num <- num_of_depl_started - num_of_depl_ended
+cue_num <- num_of_depl_received - num_of_depl_started
+```
+
+
+```{r}
+plot(df$deployment_start_time,cue_num, type = 'l' , 
+     ylab= 'Number of deployments', xlab = 'Time, Hrs', main = "Number of deployments in the cue")
+
+```
+
+# Number of responders on the bench
+
+```{r}
+plot(df$deployment_start_time,num_of_responders - depl_num, type = 'l' , 
+     ylab= 'Number of deployments', xlab = 'Time, Hrs', main = "Number of responders on the bench")
+
+```
+
+
+# Distribution of arrival times
+
+In the code cell below we calculate binned time series of requests received. Each bin has one hour time length and has the value of a number of request arrived during the time covered by bin.  
+
+```{r}
+time_since_ny = as.integer(df$request_received_time - as.POSIXlt('2021-01-01'))
+num_hours_year <- 24*365
+request_counts <- integer(num_hours_year)
+for (i in time_since_ny){
+    request_counts[i] <- request_counts[i] + 1
+}
+
+table(request_counts)
+```
+
+
+
+```{r}
+ggplot(df, aes(x=request_received_time, y=exec_time)) +
+  geom_point() + 
+  geom_segment( aes(x=request_received_time, xend=request_received_time, y=0, yend=exec_time)) + 
+        labs(x='Time', 
+             y='Execution time, Hours', 
+             title="", 
+             subtitle="Mock data", 
+             caption="")
+```
+
+
+The arrival times of the requests seem to be consistent with the random process, where an event have a certain fixed probability to occure during unit time, also call "shot noise". This process is described by the Poissonian distribution. Poissonial process is described by the following probability of the $k$ events to occur during unit time interval:
+
+$$ P = e^{-\lambda} {\lambda^k \over k!} $$
+
+# Modeling the request arrival times
+
+We use the library MASS, to infer the parameters of underlying distribution.
+```{r, echo=TRUE}
+library(MASS)
+poisson_params <- fitdistr(request_counts,"Poisson")
+lambda <- poisson_params$estimate['lambda']
+lambda
+```
+# Request wait times
+
+```{r}
+hist(as.numeric(df$wait_time),breaks=50,main = "Wait Time Between two consquitive deployments received", xlab='Hrs')
+```
+Wait times for the Poissonian process are described by the exponential distribution, for which the probability density function is:
+
+$$f(x;\lambda) = \lambda e^{-\lambda x}$$
+for $x\ge0$.
+
+```{r, echo=TRUE}
+exp_params <- fitdistr(as.numeric(df$wait_time[1:229]/60.0),"exponential")
+exp_params
+requests_per_year <- 8760*exp_params$estimate['rate']
+```
+This is perfectly consistent with the previous result for the $\lambda$ inferred above directly for the Poisson distribution. Rate multiplied by the number of hours in a year should give the number of requests expected per year:
+```{r, requests per year}
+print("Expected requests per year:")
+print(requests_per_year)
+```
+
+```{r}
+h <- hist(as.numeric(df$wait_time/60.0),freq=FALSE,breaks=25,main = "Wait Time Between two consquitive deployments received", xlab='Hrs')
+x <- h$mids
+dens <- dexp(x,exp_params$estimate['rate'])
+lines(x,dens,col='red', lwd = 4)
+```
+
+
+# Distribution of execution times.
+
+```{r exec times plot}
+hist(as.numeric(df$exec_time),breaks=25,main = "Execution Time Distribution",xlab='Hrs')
+```
+
+This distribution is also seems to be consistent with the exponential distribution:
+```{r exec times}
+exec_params <- fitdistr(as.numeric(df$exec_time),"exponential")
+exec_params
+
+```
+
+
+
+
+
+```{r exec time modeled}
+h <- hist(as.numeric(df$exec_time),freq=FALSE,breaks=25,main = "Deployments execution times", xlab='Hrs')
+x <- h$mids
+dens <- dexp(x,exec_params$estimate['rate'])
+lines(x,dens,col='red', lwd = 4)
+```
+
+# Performance by individual responders
+
+```{r}
+df$responder_id <- as.integer(df$responder_id)
+```
+
+```{r}
+p <- ggplot(df, aes(x = responder_id, y = exec_time, fill = 'white')) + 
+  geom_boxplot(aes(group = responder_id))
+p
+```
+
+# Deployment Modeling (Simulation)
+
+To model the deployment process for varying number of responders, we use following approach. We generate the deployments by drawing the request arrival times and execution times from Poisson and exponential distributions, using input parametes $\lambda$ and rate correspondingly. We assume that individual responders have the same performance. The deployments are generated for a certain time period, which is also a parameter of the statistical model. After the deployments are geneated, we simulate the deployment process for particular team of responders by consequetively assigning requests to available responders. We implement the simulation code as a separate R module.
+
+```{r, echo=TRUE}
+source('../simulation/deployment_simulation.r')
+
+sim <- generate_deployments(1)
+sim_df <- process_deployments(30,sim)
+summary(sim_df)
+```
+
+# Execution times grouped by responder_id for the synthetic data simulated for one year
+
+```{r}
+sim <- generate_deployments(0)
+sim_df <- process_deployments(30,sim)
+p <- ggplot(sim_df, aes(x = responder_id, y = deployment_length, fill = 'white')) + 
+  geom_boxplot(aes(group = responder_id))
+p
+```
+
+The variability if deployment lengths by individual responder in simulated data is similar to the mock dataset. Therefore, we can assume that in simulation individual responder performance does not vary.
+
+```{r}
+```

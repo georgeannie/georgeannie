@@ -1,0 +1,19 @@
+version: '3'
+services:
+  jupyter:
+    container_name: afv_visualization
+    build:
+      context: .
+    user: root
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../:/mnt
+    command: >
+      bash -c "
+      pip install jupyter_contrib_nbextensions &&
+      pip install jupyter_nbextensions_configurator &&
+      jupyter contrib nbextension install --user &&
+      cd /mnt &&
+      jupyter notebook --no-browser --ip="0.0.0.0" --NotebookApp.token='' --allow-root
+      "

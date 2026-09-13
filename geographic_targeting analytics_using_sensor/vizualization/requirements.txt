@@ -1,0 +1,15 @@
+boto3
+geojson
+geopandas
+ipyleaflet
+ipywidgets
+jupyter
+matplotlib
+numpy
+pandas
+plotly
+pyarrow
+pygeos
+pyproj
+pytz
+shapely

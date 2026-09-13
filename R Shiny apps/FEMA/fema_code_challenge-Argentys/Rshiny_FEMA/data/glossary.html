@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <ul>
+    <li><strong>Request interval</strong> &ndash; arrival time between two consecutive requests.</li>
+    <li><strong>Time to fulfill request</strong> &ndash; this represents the time it takes from a request being submitted in the system to issuing a responder deployment for that request, at which point the request is considered fulfilled. It is calculated as deployment-start-time minus request-received-time.</li>
+    <li><strong>Request execution time</strong> &ndash; time it takes for a request to be completed. It is calculated as deployment-end-time minus deployment-start-time.</li>
+    <li><strong>Bench time</strong> &ndash; waiting time for a responder between the end of one task and the start of the next task assigned to the same responder. It is calculated as deployment-start-time minus deployment-end-time of previous task done by the same responder.</li>
+    <li><strong>Responder utilization rate</strong> is annualized and is defined as the number of days a responder is deployed divided by the number of days in a calendar year. Fractional days may be included in this calculation.</li>
+    <li><strong>Bench rate</strong> is annualized and is defined as the number of days a responder is NOT deployed divided by the number of days in a calendar year (Total Bench time divided by the number of days).</li>
+    <li><strong>Cost Ratio</strong> is the ratio of the cost of an hour of deployment fulfillment delay (time to fullfill request) to the costs of an hour of a responder bench time.</li>
+  </ul>
+</body>
+</html>
