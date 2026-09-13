@@ -1,4 +1,0 @@
-
-dashboardHeader = dashboardHeader(
-  disable=TRUE)
-
